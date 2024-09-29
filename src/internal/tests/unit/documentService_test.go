@@ -1,40 +1,38 @@
 package service_test
 
-/*
 import (
 	service "annotater/internal/bl/documentService"
-	mock_nn "annotater/internal/mocks/bl/NN"
-	mock_repository "annotater/internal/mocks/bl/documentService/documentRepo"
+	mock_repository_data "annotater/internal/mocks/bl/documentService/documentDataRepo"
+	mock_repository_meta "annotater/internal/mocks/bl/documentService/documentMetaDataRepo"
+	mock_report_data "annotater/internal/mocks/bl/documentService/reportDataRepo"
+	mock_report_creator "annotater/internal/mocks/bl/reportCreatorService"
+	unit_test_utils "annotater/internal/tests/utils"
+
 	"annotater/internal/models"
-	"bytes"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/ozontech/allure-go/pkg/framework/provider"
+	"github.com/ozontech/allure-go/pkg/framework/suite"
 	"github.com/pkg/errors"
-	"github.com/signintech/gopdf"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
-var TEST_VALID_PDF *gopdf.GoPdf = &gopdf.GoPdf{}
-
-func createPDFBuffer(pdf *gopdf.GoPdf) []byte {
-	if pdf == nil {
-		return []byte{1}
-	}
-	pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
-	var buf bytes.Buffer
-	pdf.WriteTo(&buf)
-
-	return buf.Bytes()
+type DocumentServiceSuite struct {
+	suite.Suite
 }
 
-func TestDocumentService_LoadDocument(t *testing.T) {
+func (s *DocumentServiceSuite) TestDocumentService_LoadDocument(t provider.T) {
 	type fields struct {
-		repo          *mock_repository.MockIDocumentRepository
-		neuralNetwork *mock_nn.MockINeuralNetwork
+		repoMeta      *mock_repository_meta.MockIDocumentMetaDataRepository
+		repoData      *mock_repository_data.MockIDocumentDataRepository
+		reportData    *mock_report_data.MockIReportDataRepository
+		reportCreator *mock_report_creator.MockIReportCreatorService
 	}
 	type args struct {
-		document models.DocumentMetaData
+		documentMeta models.DocumentMetaData
+		documentData models.DocumentData
 	}
 	tests := []struct {
 		name    string
@@ -47,46 +45,63 @@ func TestDocumentService_LoadDocument(t *testing.T) {
 		{
 			name: "Successful Load Document",
 			prepare: func(f *fields) {
-				f.repo.EXPECT().AddDocument(&models.DocumentMetaData{
-					DocumentData: createPDFBuffer(TEST_VALID_PDF),
-				}).Return(nil)
+				documentBuilderMeta := unit_test_utils.NewMotherDocumentMeta()
+				documentBuilder := unit_test_utils.NewMotherDocumentData()
+				documentMeta := documentBuilderMeta.DefaultDocumentMeta()
+				document := documentBuilder.DefaultDocumentData()
+
+				reportBuilder := unit_test_utils.NewErrReportMother()
+
+				report := reportBuilder.DefaultErrReport()
+
+				f.repoData.EXPECT().AddDocument(&document).Return(nil)
+				f.repoMeta.EXPECT().AddDocument(&documentMeta).Return(nil)
+				f.reportCreator.EXPECT().CreateReport(document).Return(&report, nil)
+				f.reportData.EXPECT().AddReport(&report).Return(nil)
 			},
-			args:    args{document: models.DocumentMetaData{DocumentData: createPDFBuffer(TEST_VALID_PDF)}},
+			args: args{
+				documentMeta: unit_test_utils.NewMotherDocumentMeta().DefaultDocumentMeta(),
+				documentData: unit_test_utils.NewMotherDocumentData().DefaultDocumentData(),
+			},
 			wantErr: false,
 			errStr:  nil,
 		},
 		{
-			name: "Impossible to add to Repo",
+			name: "invalid file format",
 			prepare: func(f *fields) {
-				f.repo.EXPECT().AddDocument(&models.DocumentMetaData{
-					DocumentData: createPDFBuffer(TEST_VALID_PDF),
-				}).Return(errors.Errorf("%s", ""))
+
 			},
-			args:    args{document: models.DocumentMetaData{DocumentData: createPDFBuffer(TEST_VALID_PDF)}},
+			args: args{
+				documentMeta: unit_test_utils.NewMotherDocumentMeta().DefaultDocumentMeta(),
+				documentData: unit_test_utils.NewMotherDocumentData().InvalidDocumentData(),
+			},
 			wantErr: true,
-			errStr:  errors.New(service.LOADING_DOCUMENT_ERR_STRF + ": "),
-		},
-		{
-			name:    "invalid file format",
-			args:    args{document: models.DocumentMetaData{DocumentData: createPDFBuffer(nil)}},
-			wantErr: true,
-			errStr:  errors.New(service.DOCUMENT_FORMAT_ERR_STR),
+			errStr:  errors.Wrapf(service.ErrDocumentFormat, "document with name %v", unit_test_utils.TEST_DEFAULT_DOCUMENT_NAME),
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Title(tt.name)
+		t.Tags("document_service")
+		//t.Parallel()
+		t.Run(tt.name, func(t provider.T) {
 			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			f := fields{
-				repo:          mock_repository.NewMockIDocumentRepository(ctrl),
-				neuralNetwork: mock_nn.NewMockINeuralNetwork(ctrl),
-			}
+			docMetaRepoMock := mock_repository_meta.NewMockIDocumentMetaDataRepository(ctrl)
+			docRepoMock := mock_repository_data.NewMockIDocumentDataRepository(ctrl)
+			reportRepoMock := mock_report_data.NewMockIReportDataRepository(ctrl)
+			reportServiceMock := mock_report_creator.NewMockIReportCreatorService(ctrl)
+			loggerMock := unit_test_utils.MockLogger
+
 			if tt.prepare != nil {
-				tt.prepare(&f)
+				tt.prepare(&fields{
+					repoMeta:      docMetaRepoMock,
+					repoData:      docRepoMock,
+					reportData:    reportRepoMock,
+					reportCreator: reportServiceMock,
+				})
 			}
 
-			s := service.NewDocumentService(f.repo, f.neuralNetwork)
-			err := s.LoadDocument(tt.args.document)
+			documentService := service.NewDocumentService(loggerMock, docMetaRepoMock, docRepoMock, reportRepoMock, reportServiceMock)
+			_, err := documentService.LoadDocument(tt.args.documentMeta, tt.args.documentData)
 			if tt.wantErr {
 				require.Equal(t, tt.errStr.Error(), err.Error())
 			} else {
@@ -97,121 +112,88 @@ func TestDocumentService_LoadDocument(t *testing.T) {
 	}
 }
 
-func TestDocumentService_CheckDocument(t *testing.T) {
+func (s *DocumentServiceSuite) Test_IDocumentService_GetDocumentsByCreatorID(t provider.T) {
 	type fields struct {
-		repo          *mock_repository.MockIDocumentRepository
-		neuralNetwork *mock_nn.MockINeuralNetwork
+		docMetaRepo   *mock_repository_meta.MockIDocumentMetaDataRepository
+		docRepo       *mock_repository_data.MockIDocumentDataRepository
+		reportRepo    *mock_report_data.MockIReportDataRepository
+		reportService *mock_report_creator.MockIReportCreatorService
+		logger        *logrus.Logger
 	}
 	type args struct {
-		document models.DocumentMetaData
+		creatorID uint64
 	}
 	tests := []struct {
 		name    string
 		fields  fields
-		args    args
-		want    []models.Markup
-		wantErr bool
 		prepare func(f *fields)
-		errStr  error
+		args    args
+		want    []models.DocumentMetaData
+		wantErr bool
+		err     error
 	}{
 		{
-			name: "Valid Check one markup",
+			name: "Valid creator ID",
 			prepare: func(f *fields) {
-				f.neuralNetwork.EXPECT().Predict(models.DocumentMetaData{
-					DocumentData: createPDFBuffer(TEST_VALID_PDF)}).Return([]models.Markup{
-					{ErrorBB: []float32{0.4, 0.3, 0.2},
-						ClassLabel: 1,
-					},
-				}, nil)
+				document1 := unit_test_utils.NewMotherDocumentMeta().DocumentMetaWithName("doc1")
+				document2 := unit_test_utils.NewMotherDocumentMeta().DocumentMetaWithName("doc2")
+				documents := []models.DocumentMetaData{document1, document2}
+				f.docMetaRepo.EXPECT().GetDocumentsByCreatorID(unit_test_utils.TEST_BASIC_ID).Return(documents, nil)
 			},
-			args: args{document: models.DocumentMetaData{
-				DocumentData: createPDFBuffer(TEST_VALID_PDF)}},
+			args: args{creatorID: unit_test_utils.TEST_BASIC_ID},
+			want: []models.DocumentMetaData{unit_test_utils.NewMotherDocumentMeta().DocumentMetaWithName("doc1"),
+				unit_test_utils.NewMotherDocumentMeta().DocumentMetaWithName("doc2")},
 			wantErr: false,
-			errStr:  nil,
-			want: []models.Markup{
-				{ErrorBB: []float32{0.4, 0.3, 0.2},
-					ClassLabel: 1,
-				},
-			},
+			err:     nil,
 		},
 		{
-			name: "Valid check zero markups",
+			name: "Invalid creator ID",
 			prepare: func(f *fields) {
-				f.neuralNetwork.EXPECT().Predict(models.DocumentMetaData{
-					DocumentData: createPDFBuffer(TEST_VALID_PDF)}).Return(nil, nil)
+				f.docMetaRepo.EXPECT().GetDocumentsByCreatorID(unit_test_utils.TEST_BASIC_ID).Return(nil, errors.New("invalid creator ID"))
 			},
-			args: args{document: models.DocumentMetaData{
-				DocumentData: createPDFBuffer(TEST_VALID_PDF)}},
-			wantErr: false,
-			errStr:  nil,
+			args:    args{creatorID: unit_test_utils.TEST_BASIC_ID},
 			want:    nil,
-		},
-		{
-			name: "Check error",
-			prepare: func(f *fields) {
-				f.neuralNetwork.EXPECT().Predict(models.DocumentMetaData{
-					DocumentData: createPDFBuffer(TEST_VALID_PDF)}).Return(nil, errors.New(""))
-			},
-			args:    args{document: models.DocumentMetaData{DocumentData: createPDFBuffer(TEST_VALID_PDF)}},
 			wantErr: true,
-			errStr:  errors.New(service.CHECKING_DOCUMENT_ERR_STRF + ": "),
-			want:    nil,
-		},
-		{
-			name: "Valid check numerous markups",
-			prepare: func(f *fields) {
-				f.neuralNetwork.EXPECT().Predict(models.DocumentMetaData{DocumentData: createPDFBuffer(TEST_VALID_PDF)}).Return([]models.Markup{
-					{ErrorBB: []float32{0.4, 0.3, 0.2},
-						ClassLabel: 1,
-					},
-					{ErrorBB: []float32{0.1, 0.2, 0.1},
-						ClassLabel: 2,
-					},
-				}, nil)
-			},
-			args:    args{document: models.DocumentMetaData{DocumentData: createPDFBuffer(TEST_VALID_PDF)}},
-			wantErr: false,
-			errStr:  nil,
-			want: []models.Markup{
-				{ErrorBB: []float32{0.4, 0.3, 0.2},
-					ClassLabel: 1,
-				},
-				{ErrorBB: []float32{0.1, 0.2, 0.1},
-					ClassLabel: 2,
-				},
-			},
-		},
-		{
-			name: "Invalid File Format",
-			args: args{document: models.DocumentMetaData{
-				DocumentData: createPDFBuffer(nil)}},
-			wantErr: true,
-			errStr:  errors.New(service.DOCUMENT_FORMAT_ERR_STR),
-			want:    nil,
+			err:     errors.Wrapf(errors.New("invalid creator ID"), service.DOCUMENT_GET_ERR_CREATOR_STRF, unit_test_utils.TEST_BASIC_ID),
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Title(tt.name)
+		t.Tags("document_service")
+		//t.Parallel()
+		t.Run(tt.name, func(t provider.T) {
 			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			f := fields{
-				repo:          mock_repository.NewMockIDocumentRepository(ctrl),
-				neuralNetwork: mock_nn.NewMockINeuralNetwork(ctrl),
-			}
+			docMetaRepoMock := mock_repository_meta.NewMockIDocumentMetaDataRepository(ctrl)
+			docRepoMock := mock_repository_data.NewMockIDocumentDataRepository(ctrl)
+			reportRepoMock := mock_report_data.NewMockIReportDataRepository(ctrl)
+			reportServiceMock := mock_report_creator.NewMockIReportCreatorService(ctrl)
+			loggerMock := unit_test_utils.MockLogger
+
 			if tt.prepare != nil {
-				tt.prepare(&f)
+				tt.prepare(&fields{
+					docMetaRepo:   docMetaRepoMock,
+					docRepo:       docRepoMock,
+					reportRepo:    reportRepoMock,
+					reportService: reportServiceMock,
+					logger:        loggerMock,
+				})
 			}
 
-			s := service.NewDocumentService(f.repo, f.neuralNetwork)
-			markups, err := s.CheckDocument(tt.args.document)
+			documentService := service.NewDocumentService(loggerMock, docMetaRepoMock, docRepoMock, reportRepoMock, reportServiceMock)
+			documents, err := documentService.GetDocumentsByCreatorID(tt.args.creatorID)
+
+			t.WithNewParameters("creatorID", tt.args.creatorID, "err", err)
 			if tt.wantErr {
-				require.Equal(t, tt.errStr.Error(), err.Error())
+				t.Assert().Error(err)
+				t.Assert().Equal(tt.err.Error(), err.Error())
 			} else {
-				require.Nil(t, err)
-				require.Equal(t, markups, tt.want)
+				t.Assert().NoError(err)
+				t.Assert().Equal(tt.want, documents)
 			}
-
 		})
 	}
 }
-*/
+
+func TestDocumentServiceSuiteRunner(t *testing.T) {
+	suite.RunSuite(t, new(DocumentServiceSuite))
+}

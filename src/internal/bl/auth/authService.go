@@ -5,8 +5,6 @@ import (
 	"annotater/internal/models"
 	auth_utils "annotater/internal/pkg/authUtils"
 
-	"errors"
-
 	err_wr "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -21,9 +19,9 @@ var (
 var ERR_LOGIN_STRF = "auth svc - error for user with login %v"
 
 var (
-	ErrCreatingUser    = errors.New("error in creating user")
-	ErrGeneratingToken = errors.New("error in generating token for user")
-	ErrGeneratingHash  = errors.New("error in generating passwdHash for user")
+	ErrCreatingUser    = err_wr.New("error in creating user")
+	ErrGeneratingToken = err_wr.New("error in generating token for user")
+	ErrGeneratingHash  = err_wr.New("error in generating passwdHash for user")
 )
 
 const SECRET = "secret"
@@ -68,7 +66,8 @@ func (serv *AuthService) SignUp(candidate *models.User) error {
 
 	passHash, err = serv.passwordHasher.GenerateHash(candidate.Password)
 	if err != nil {
-		err = err_wr.Wrapf(err, "error for user with login %v:%v", candidate.Login, ErrGeneratingHash)
+		err = err_wr.Wrap(err, ErrGeneratingHash.Error())
+		err = err_wr.Wrapf(err, ERR_LOGIN_STRF, candidate.Login)
 		serv.logger.Warn(err)
 		return err
 	}
@@ -77,7 +76,8 @@ func (serv *AuthService) SignUp(candidate *models.User) error {
 
 	err = serv.userRepo.CreateUser(&candidateHashedPasswd)
 	if err != nil {
-		err = err_wr.Wrapf(err, "error for user with login %v:%v", candidate.Login, ErrCreatingUser)
+		err = err_wr.Wrap(err, ErrCreatingUser.Error())
+		err = err_wr.Wrapf(err, ERR_LOGIN_STRF, candidate.Login)
 		serv.logger.Warn(err)
 		return err
 	}
