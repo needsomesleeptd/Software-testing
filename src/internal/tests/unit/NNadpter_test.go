@@ -1,34 +1,38 @@
 package service_test
 
-/*
 import (
 	nn_adapter "annotater/internal/bl/NN/NNAdapter"
-	mock_nn_model_handler "annotater/internal/mocks/bl/NN/NNAdapter/NNmodelhandler"
 	"annotater/internal/models"
 	models_dto "annotater/internal/models/dto"
+	unit_test_utils "annotater/internal/tests/utils"
 	"errors"
-	"testing"
+
+	mock_nn_model_handler "annotater/internal/mocks/bl/NN/NNAdapter/NNmodelhandler"
 
 	"github.com/golang/mock/gomock"
+	"github.com/ozontech/allure-go/pkg/framework/provider"
+	"github.com/ozontech/allure-go/pkg/framework/suite"
 	"github.com/stretchr/testify/require"
 )
 
-const SOME_DOCUMENT_DATA = "document data"
+type NNadapterSuite struct {
+	suite.Suite
+}
 
-func TestDetectionModel_Predict(t *testing.T) {
+func (s *NNadapterSuite) TestDetectionModel_Predict(t provider.T) {
 	type fields struct {
 		modelHandler *mock_nn_model_handler.MockIModelHandler
 	}
 	type args struct {
-		document models.DocumentMetaData
+		document models.DocumentData
 	}
 	tests := []struct {
 		name    string
 		fields  fields
+		prepare func(f *fields)
 		args    args
 		want    []models.Markup
 		wantErr bool
-		prepare func(f *fields)
 		err     error
 	}{
 		{
@@ -39,7 +43,7 @@ func TestDetectionModel_Predict(t *testing.T) {
 					{ErrorBB: []float32{0.3, 0.2, 0.1}, ClassLabel: 2},
 				}, nil)
 			},
-			args: args{document: models.DocumentMetaData{DocumentData: []byte(SOME_DOCUMENT_DATA)}},
+			args: args{document: unit_test_utils.NewMotherDocumentData().DefaultDocumentData()},
 			want: []models.Markup{
 				{ErrorBB: []float32{0.1, 0.2, 0.3}, ClassLabel: 1},
 				{ErrorBB: []float32{0.3, 0.2, 0.1}, ClassLabel: 2},
@@ -52,24 +56,17 @@ func TestDetectionModel_Predict(t *testing.T) {
 			prepare: func(f *fields) {
 				f.modelHandler.EXPECT().GetModelResp(gomock.Any()).Return(nil, errors.New("error in model response"))
 			},
-			args:    args{document: models.DocumentMetaData{DocumentData: []byte(SOME_DOCUMENT_DATA)}},
+			args:    args{document: unit_test_utils.NewMotherDocumentData().DefaultDocumentData()},
 			want:    nil,
 			wantErr: true,
 			err:     nn_adapter.ErrInModelPrediction,
 		},
-		{
-			name: "Empty Prediction",
-			prepare: func(f *fields) {
-				f.modelHandler.EXPECT().GetModelResp(gomock.Any()).Return(nil, nil)
-			},
-			args:    args{document: models.DocumentMetaData{DocumentData: []byte(SOME_DOCUMENT_DATA)}},
-			want:    nil,
-			wantErr: false,
-			err:     nil,
-		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Title(tt.name)
+		t.Tags("NNadapter")
+		//t.Parallel()
+		t.Run(tt.name, func(t provider.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			f := fields{
@@ -91,4 +88,3 @@ func TestDetectionModel_Predict(t *testing.T) {
 		})
 	}
 }
-*/
