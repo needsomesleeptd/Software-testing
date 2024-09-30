@@ -466,6 +466,91 @@ func (s *AnnotationTypeRepositorySuite) Test_AnotattionTypeRepositoryAdapter_Del
 	}
 }
 
+func (s *AnnotationTypeRepositorySuite) Test_AddAnottationType(t provider.T) {
+	type fields struct {
+		db   *gorm.DB
+		mock sqlmock.Sqlmock
+	}
+
+	objectMother := unit_test_utils.NewMarkupTypeObjectMother()
+
+	tests := []struct {
+		name       string
+		fields     fields
+		args       *models.MarkupType
+		beforeTest func(f *fields)
+		wantErr    bool
+		err        error
+	}{
+		{
+			name: "Add annotation type no error",
+			beforeTest: func(f *fields) {
+				markUpType := objectMother.NewDefaultMarkupType()
+				f.mock.ExpectBegin()
+				f.mock.ExpectQuery(`INSERT INTO "markup_types" ("description","creator_id","class_name","id") VALUES ($1,$2,$3,$4) RETURNING "id"`).
+					WithArgs(markUpType.Description, markUpType.CreatorID, markUpType.ClassName, markUpType.ID).
+					WillReturnRows(
+						sqlmock.NewRows([]string{"id"}).AddRow(markUpType.ID))
+				f.mock.ExpectCommit()
+			},
+			args:    objectMother.NewDefaultMarkupType(),
+			wantErr: false,
+			err:     nil,
+		},
+		{
+			name: "Add annotation type with duplicate error",
+			beforeTest: func(f *fields) {
+				markUpType := objectMother.NewDefaultMarkupType()
+				f.mock.ExpectBegin()
+				f.mock.ExpectQuery(`INSERT INTO "markup_types" ("description","creator_id","class_name","id") VALUES ($1,$2,$3,$4) RETURNING "id"`).
+					WithArgs(markUpType.Description, markUpType.CreatorID, markUpType.ClassName, markUpType.ID).
+					WillReturnError(gorm.ErrDuplicatedKey)
+				f.mock.ExpectRollback()
+			},
+			args:    objectMother.NewDefaultMarkupType(),
+			wantErr: true,
+			err:     models.ErrDuplicateMarkupType,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Title(tt.name)
+		t.Tags("annotationTypeRepository")
+		t.Run(tt.name, func(t provider.T) {
+			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+			require.NoError(t, err)
+
+			defer db.Close()
+
+			gormDB, err := gorm.Open(postgres2.New(postgres2.Config{
+				Conn: db,
+			}), &gorm.Config{})
+			require.NoError(t, err)
+
+			fields := fields{
+				db:   gormDB,
+				mock: mock,
+			}
+
+			if tt.beforeTest != nil {
+				tt.beforeTest(&fields)
+			}
+
+			repo := repo_adapter.NewAnotattionTypeRepositoryAdapter(gormDB)
+			err = repo.AddAnottationType(tt.args)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Equal(t, tt.err.Error(), err.Error())
+			} else {
+				require.NoError(t, err)
+			}
+
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
 func TestAnotattionTypeRepoSuiteRunner(t *testing.T) {
 	suite.RunSuite(t, new(AnnotationTypeRepositorySuite))
 }

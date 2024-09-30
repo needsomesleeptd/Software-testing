@@ -5,11 +5,21 @@ import (
 	"bytes"
 	"image"
 	"image/png"
+	"strconv"
+	"strings"
 )
 
 const (
 	TEST_BASIC_ID uint64 = 20
 )
+
+func FloatArrayToString(arr []float32) string {
+	strArr := make([]string, len(arr))
+	for i, v := range arr {
+		strArr[i] = strconv.FormatFloat(float64(v), 'f', -1, 32)
+	}
+	return strings.Join(strArr, ",")
+}
 
 func createPNGBuffer(img *image.RGBA) []byte {
 	if img == nil {
