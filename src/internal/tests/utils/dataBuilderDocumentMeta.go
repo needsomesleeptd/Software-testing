@@ -20,6 +20,9 @@ var TEST_DEFAULT_CREATION_TIME = time.Date(2023, time.October, 1, 15, 0, 0, 0, t
 
 var TEST_DEFAULT_DOCUMENT_NAME = "default_doc"
 
+var TEST_DEFAULT_ROOT = "def_root"
+var TEST_DEFAULT_EXT = ".def_ext"
+
 func TEST_CreatePDFBuffer(pdf *gopdf.GoPdf) []byte {
 	if pdf == nil {
 		return []byte{1}

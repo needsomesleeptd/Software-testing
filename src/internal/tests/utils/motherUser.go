@@ -2,19 +2,26 @@ package unit_test_utils
 
 import (
 	"annotater/internal/models"
+	auth_utils "annotater/internal/pkg/authUtils"
 )
 
 const (
 	TEST_HASH_KEY       = "test"
 	TEST_VALID_LOGIN    = "login"
 	TEST_VALID_PASSWORD = "passed"
-	TEST_HASH_PASSWD    = "hashed_passwd"
+	TEST_HASH_PASSWD    = "hashed_passwdf"
 	TEST_VALID_TOKEN    = "token"
 
 	TEST_EMPTY_LOGIN = ""
 
 	TEST_EMPTY_PASSWD = ""
 )
+
+func forceGetHash(passwd string) string {
+	hasher := auth_utils.NewPasswordHashCrypto()
+	res, _ := hasher.GenerateHash(passwd)
+	return res
+}
 
 type UserObjectMother struct{}
 
@@ -91,7 +98,7 @@ func (m *UserObjectMother) DefaultUserHashedPassWd() *models.User {
 func (m *UserObjectMother) UserWithoutLogin() *models.User {
 	return &models.User{
 		Login:    TEST_EMPTY_LOGIN,
-		Password: TEST_HASH_PASSWD,
+		Password: TEST_VALID_PASSWORD,
 		Name:     "default name",
 		Surname:  "default surname",
 		Role:     models.Sender,

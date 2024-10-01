@@ -2,6 +2,7 @@ package doc_data_repo_adapter
 
 import (
 	doc_data_repo "annotater/internal/bl/documentService/documentDataRepo"
+	filesystem "annotater/internal/bl/documentService/reportDataRepo/reportDataRepoAdapter/filesytem"
 	"annotater/internal/models"
 	"fmt"
 	"os"
@@ -13,25 +14,27 @@ import (
 type DocumentDataRepositoryAdapter struct {
 	root          string
 	fileExtension string //it is optional
+	fs            filesystem.IFileSystem
 }
 
-func NewDocumentRepositoryAdapter(rootSrc string, ext string) doc_data_repo.IDocumentDataRepository {
+func NewDocumentRepositoryAdapter(rootSrc string, ext string, fs filesystem.IFileSystem) doc_data_repo.IDocumentDataRepository {
 	return &DocumentDataRepositoryAdapter{
 		root:          rootSrc,
 		fileExtension: ext,
+		fs:            fs,
 	}
 }
 
 func (repo *DocumentDataRepositoryAdapter) MakeDir(dir string) error {
 	dirPath := fmt.Sprintf("%s/%s", repo.root, dir) + repo.fileExtension
-	return os.MkdirAll(dirPath, 0755)
+	return repo.fs.MkdirAll(dirPath, os.FileMode(0755))
 }
 
 func (repo *DocumentDataRepositoryAdapter) Exists(path string) bool {
 	fullPath := fmt.Sprintf("%s/%s", repo.root, path) + repo.fileExtension
-	_, err := os.Stat(fullPath)
+	_, err := repo.fs.Stat(fullPath)
 
-	return !os.IsNotExist(err)
+	return !repo.fs.IsNotExist(err)
 }
 
 func (repo *DocumentDataRepositoryAdapter) AddDocument(doc *models.DocumentData) error {
@@ -44,7 +47,7 @@ func (repo *DocumentDataRepositoryAdapter) AddDocument(doc *models.DocumentData)
 
 	filePath := fmt.Sprintf("%s/%s", repo.root, doc.ID) + repo.fileExtension
 
-	err := os.WriteFile(filePath, doc.DocumentBytes, 0644)
+	err := repo.fs.WriteFile(filePath, doc.DocumentBytes, 0644)
 	if err != nil {
 		return errors.Wrap(err, "error in saving document data")
 	}
@@ -54,7 +57,7 @@ func (repo *DocumentDataRepositoryAdapter) AddDocument(doc *models.DocumentData)
 
 func (repo *DocumentDataRepositoryAdapter) DeleteDocumentByID(id uuid.UUID) error {
 	filePath := fmt.Sprintf("%s/%s", repo.root, id) + repo.fileExtension
-	err := os.Remove(filePath)
+	err := repo.fs.Remove(filePath)
 	if err != nil {
 		return errors.Wrap(err, "error in deleting document data")
 	}
@@ -64,7 +67,7 @@ func (repo *DocumentDataRepositoryAdapter) DeleteDocumentByID(id uuid.UUID) erro
 
 func (repo *DocumentDataRepositoryAdapter) GetDocumentByID(id uuid.UUID) (*models.DocumentData, error) {
 	filePath := fmt.Sprintf("%s/%s", repo.root, id) + repo.fileExtension
-	fileBytes, err := os.ReadFile(filePath)
+	fileBytes, err := repo.fs.ReadFile(filePath)
 
 	if err == os.ErrNotExist {
 		return nil, models.ErrNotFound

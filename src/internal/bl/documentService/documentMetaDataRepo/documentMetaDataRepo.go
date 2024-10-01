@@ -11,5 +11,4 @@ type IDocumentMetaDataRepository interface {
 	DeleteDocumentByID(id uuid.UUID) error
 	GetDocumentByID(id uuid.UUID) (*models.DocumentMetaData, error)
 	GetDocumentsByCreatorID(id uint64) ([]models.DocumentMetaData, error)
-	GetDocumentCountByCreator(id uint64) (int64, error)
 }

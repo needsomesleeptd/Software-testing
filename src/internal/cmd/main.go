@@ -106,9 +106,10 @@ func main() {
 	reportCreator := report_creator.NewPDFReportCreator(config.ReportCreatorPath)
 	reportCreatorService := rep_creator_service.NewDocumentService(log, model, annotTypeRepo, reportCreator)
 
-	documentStorage := doc_data_repo_adapter.NewDocumentRepositoryAdapter(config.DocumentPath, config.DocumentExt)
-
 	filesystem := filesystem.OSFileSystem{}
+
+	documentStorage := doc_data_repo_adapter.NewDocumentRepositoryAdapter(config.DocumentPath, config.DocumentExt, filesystem)
+
 	reportStorage := rep_data_repo_adapter.NewDocumentRepositoryAdapter(config.ReportPath, config.ReportExt, filesystem)
 
 	documentRepo := document_repo_adapter.NewDocumentRepositoryAdapter(db)

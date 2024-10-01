@@ -35,7 +35,6 @@ var (
 
 type IDocumentService interface {
 	GetDocumentsByCreatorID(creatorID uint64) ([]models.DocumentMetaData, error)
-	GetDocumentCountByCreatorID(creatorID uint64) (int64, error)
 	LoadDocument(documentMetaData models.DocumentMetaData, document models.DocumentData) (*models.ErrorReport, error)
 	GetDocumentByID(ID uuid.UUID) (*models.DocumentData, error)
 	GetReportByID(ID uuid.UUID) (*models.ErrorReport, error)
@@ -150,15 +149,4 @@ func (serv *DocumentService) GetReportByID(ID uuid.UUID) (*models.ErrorReport, e
 	}
 	serv.logger.Infof("successfuly got report by id %v\n", ID.String())
 	return report, nil
-}
-
-func (serv *DocumentService) GetDocumentCountByCreatorID(creatorID uint64) (int64, error) {
-	count, err := serv.docMetaRepo.GetDocumentCountByCreator(creatorID)
-	if err != nil {
-		err = errors.Wrapf(err, DOCUMENT_COUNT_ERR_STRF, creatorID)
-		serv.logger.Error(err)
-		return -1, err
-	}
-	serv.logger.Infof("successfuly got document count by creatorID %v", creatorID)
-	return count, err
 }
