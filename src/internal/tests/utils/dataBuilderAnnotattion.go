@@ -54,6 +54,10 @@ func (b *MarkupBuilder) WithErrorBB(errorBB []float32) *MarkupBuilder {
 	b.markup.ErrorBB = errorBB
 	return b
 }
+func (b *MarkupBuilder) WithEID(ID uint64) *MarkupBuilder {
+	b.markup.ID = ID
+	return b
+}
 
 func (b *MarkupBuilder) WithPageData(pageData []byte) *MarkupBuilder {
 	b.markup.PageData = pageData
