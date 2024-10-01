@@ -65,14 +65,16 @@ func (s *AnnotationTypeRepositorySuite) Test_AnnotationTypeRepository_GetAllAnno
 			err:     errors.Wrapf(unit_test_utils.ErrEmpty, "Error in getting anotattion type db"),
 		},
 	}
-
+	t.Title("GetAllAnnotationTypes")
+	t.Tags("annotationTypeRepository")
 	for _, tt := range tests {
 		t.Title(tt.name)
 		t.Tags("annotationTypeRepository")
-		t.Run(tt.name, func(t provider.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Assert().NoError(err)
+				//t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 			}
 			defer db.Close()
 
@@ -83,7 +85,8 @@ func (s *AnnotationTypeRepositorySuite) Test_AnnotationTypeRepository_GetAllAnno
 			})
 
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Assert().NoError(err)
+				//t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 			}
 
 			// Adjusted to use gormDB instead of the mock
@@ -155,14 +158,15 @@ func (s *AnnotationTypeRepositorySuite) Test_AnnotationTypeRepository_GetAnnotat
 			err:     errors.Wrap(unit_test_utils.ErrEmpty, "Error in getting anotattion type db"),
 		},
 	}
-
+	t.Title("GetAnnotationTypeByID")
+	t.Tags("annotationTypeRepository")
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("annotationTypeRepository")
-		t.Run(tt.name, func(t provider.T) {
+
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Assert().NoError(err)
+				//t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 			}
 			defer db.Close()
 
@@ -170,7 +174,8 @@ func (s *AnnotationTypeRepositorySuite) Test_AnnotationTypeRepository_GetAnnotat
 				Conn: db,
 			}), &gorm.Config{})
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a gorm database connection", err)
+				t.Assert().NoError(err)
+				//t.Fatalf("an error '%s' was not expected when opening a gorm database connection", err)
 			}
 
 			fields := fields{
@@ -250,14 +255,14 @@ func (s *AnnotationTypeRepositorySuite) Test_AnotattionRepositoryAdapter_GetAnot
 			err:     errors.Wrapf(unit_test_utils.ErrEmpty, "Error in getting anotattion type db"),
 		},
 	}
-
+	t.Title("GetAnottationsByUserID")
+	t.Tags("annotationTypeRepository")
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("anotationRepository")
-		t.Run(tt.name, func(t provider.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Assert().NoError(err)
+				//t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 			}
 			defer db.Close()
 
@@ -265,7 +270,8 @@ func (s *AnnotationTypeRepositorySuite) Test_AnotattionRepositoryAdapter_GetAnot
 				Conn: db,
 			}), &gorm.Config{})
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a gorm database connection", err)
+				t.Assert().NoError(err)
+				//t.Fatalf("an error '%s' was not expected when opening a gorm database connection", err)
 			}
 
 			fields := fields{
@@ -343,14 +349,14 @@ func (s *AnnotationTypeRepositorySuite) Test_AnotattionTypeRepositoryAdapter_Get
 			err:     errors.Wrapf(unit_test_utils.ErrEmpty, "Error in getting anotattion type db"),
 		},
 	}
-
+	t.Title("GetAnottationTypesByIDs")
+	t.Tags("annotationTypeRepository")
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("anotationTypeRepository")
-		t.Run(tt.name, func(t provider.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Assert().Error(err)
+				//t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 			}
 			defer db.Close()
 
@@ -358,7 +364,8 @@ func (s *AnnotationTypeRepositorySuite) Test_AnotattionTypeRepositoryAdapter_Get
 				Conn: db,
 			}), &gorm.Config{})
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a gorm database connection", err)
+				t.Assert().Error(err)
+				//t.Fatalf("an error '%s' was not expected when opening a gorm database connection", err)
 			}
 
 			fields := fields{
@@ -426,14 +433,14 @@ func (s *AnnotationTypeRepositorySuite) Test_AnotattionTypeRepositoryAdapter_Del
 			err:     errors.Wrap(unit_test_utils.ErrEmpty, "Error in deleting anotattion type db"),
 		},
 	}
-
+	t.Title("DeleteAnotattionType")
+	t.Tags("annotationTypeRepository")
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("anotationTypeRepository")
-		t.Run(tt.name, func(t provider.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Assert().NoError(err)
+				//t.Errorf("an error '%s' was not expected when opening a stub database connection", err)
 			}
 			defer db.Close()
 
@@ -441,7 +448,7 @@ func (s *AnnotationTypeRepositorySuite) Test_AnotattionTypeRepositoryAdapter_Del
 				Conn: db,
 			}), &gorm.Config{})
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a gorm database connection", err)
+				t.Errorf("an error '%s' was not expected when opening a gorm database connection", err)
 			}
 
 			fields := fields{
@@ -512,11 +519,10 @@ func (s *AnnotationTypeRepositorySuite) Test_AddAnottationType(t provider.T) {
 			err:     models.ErrDuplicateMarkupType,
 		},
 	}
-
+	t.Title("AddAnottationType")
+	t.Tags("annotationTypeRepository")
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("annotationTypeRepository")
-		t.Run(tt.name, func(t provider.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 			require.NoError(t, err)
 

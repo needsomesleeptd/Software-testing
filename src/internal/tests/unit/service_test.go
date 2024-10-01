@@ -1,14 +1,6 @@
 package service_test
 
-import (
-	"sync"
-	"testing"
-
-	"github.com/ozontech/allure-go/pkg/framework/runner"
-	"github.com/ozontech/allure-go/pkg/framework/suite"
-)
-
-func TestRunner(t *testing.T) {
+/*func TestRunner(t *testing.T) {
 	//db, ids := utils.NewTestStorage()
 	//defer utils.DropTestStorage(db)
 
@@ -29,3 +21,4 @@ func TestRunner(t *testing.T) {
 
 	wg.Wait()
 }
+*/

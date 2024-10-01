@@ -80,11 +80,12 @@ func (s *DocumentServiceSuite) TestDocumentService_LoadDocument(t provider.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Title(tt.name)
+		t.Title("LoadDocument")
 		t.Tags("document_service")
+		ctrl := gomock.NewController(t)
 		//t.Parallel()
-		t.Run(tt.name, func(t provider.T) {
-			ctrl := gomock.NewController(t)
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
+
 			docMetaRepoMock := mock_repository_meta.NewMockIDocumentMetaDataRepository(ctrl)
 			docRepoMock := mock_repository_data.NewMockIDocumentDataRepository(ctrl)
 			reportRepoMock := mock_report_data.NewMockIReportDataRepository(ctrl)
@@ -158,11 +159,11 @@ func (s *DocumentServiceSuite) Test_IDocumentService_GetDocumentsByCreatorID(t p
 		},
 	}
 	for _, tt := range tests {
-		t.Title(tt.name)
+		t.Title("GetDocumentsByCreatorID")
 		t.Tags("document_service")
 		//t.Parallel()
-		t.Run(tt.name, func(t provider.T) {
-			ctrl := gomock.NewController(t)
+		ctrl := gomock.NewController(t)
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			docMetaRepoMock := mock_repository_meta.NewMockIDocumentMetaDataRepository(ctrl)
 			docRepoMock := mock_repository_data.NewMockIDocumentDataRepository(ctrl)
 			reportRepoMock := mock_report_data.NewMockIReportDataRepository(ctrl)

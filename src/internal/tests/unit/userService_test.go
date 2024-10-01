@@ -6,14 +6,19 @@ import (
 	"annotater/internal/models"
 	unit_test_utils "annotater/internal/tests/utils"
 	"fmt"
-	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/ozontech/allure-go/pkg/framework/provider"
+	"github.com/ozontech/allure-go/pkg/framework/suite"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 
-func TestUserService_ChangeUserRoleByLogin(t *testing.T) {
+type UserServiceSuite struct {
+	suite.Suite
+}
+
+func (s *UserServiceSuite) TestUserService_ChangeUserRoleByLogin(t provider.T) {
 	type fields struct {
 		userRepo *mock_repository.MockIUserRepository
 	}
@@ -49,9 +54,11 @@ func TestUserService_ChangeUserRoleByLogin(t *testing.T) {
 			errStr:  errors.Wrap(unit_test_utils.ErrEmpty, fmt.Sprintf("error changing user role with login %v wanted role %v", unit_test_utils.TEST_VALID_LOGIN, models.Admin)),
 		},
 	}
+	ctrl := gomock.NewController(t)
+	t.Title("ChangeUserRoleByLogin")
+	t.Tag("userService")
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			defer ctrl.Finish()
 			f := fields{
 				userRepo: mock_repository.NewMockIUserRepository(ctrl),
@@ -72,7 +79,7 @@ func TestUserService_ChangeUserRoleByLogin(t *testing.T) {
 	}
 }
 
-func TestUserService_GetAllUsers(t *testing.T) {
+func (s *UserServiceSuite) TestUserService_GetAllUsers(t provider.T) {
 	type fields struct {
 		userRepo *mock_repository.MockIUserRepository
 	}
@@ -110,10 +117,12 @@ func TestUserService_GetAllUsers(t *testing.T) {
 			errStr:  errors.Wrap(unit_test_utils.ErrEmpty, service.ERROR_GETTING_USERS_STR),
 		},
 	}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	t.Title("GetAllUsers")
+	t.Tag("userService")
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			f := fields{
 				userRepo: mock_repository.NewMockIUserRepository(ctrl),
 			}

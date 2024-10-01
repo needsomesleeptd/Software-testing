@@ -63,11 +63,12 @@ func (s *NNadapterSuite) TestDetectionModel_Predict(t provider.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Title(tt.name)
+		t.Title("Predict")
 		t.Tags("NNadapter")
 		//t.Parallel()
-		t.Run(tt.name, func(t provider.T) {
-			ctrl := gomock.NewController(t)
+		ctrl := gomock.NewController(t)
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
+
 			defer ctrl.Finish()
 			f := fields{
 				modelHandler: mock_nn_model_handler.NewMockIModelHandler(ctrl),

@@ -20,139 +20,146 @@ type AnnotattionServiceSuite struct {
 }
 
 func (s *AnnotattionServiceSuite) Test_AnnotattionService_AddAnnotation(t provider.T) {
-	t.Title("[AddAnnotation] Valid annotation")
-	t.Tags("annotattion")
-	//t.Parallel()
-	t.WithNewStep("Valid annotation", func(sCtx provider.StepCtx) {
-		ctx := context.TODO()
-		ctrl := gomock.NewController(t)
-		markup := unit_test_utils.NewMarkupBuilder().
-			WithErrorBB(unit_test_utils.VALID_BBS_PARAMS).
-			WithPageData(unit_test_utils.VALID_PNG_BUFFER).
-			Build()
+	tests := []struct {
+		name      string
+		markup    *models.Markup
+		expectErr bool
+	}{
+		{
+			name: "[AddAnnotation] Valid annotation",
+			markup: unit_test_utils.NewMarkupBuilder().
+				WithErrorBB(unit_test_utils.VALID_BBS_PARAMS).
+				WithPageData(unit_test_utils.VALID_PNG_BUFFER).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "[AddAnnotation] Invalid markup BBs",
+			markup: unit_test_utils.NewMarkupBuilder().
+				WithErrorBB(unit_test_utils.INVALID_BBS_PARAMS).
+				WithPageData(unit_test_utils.VALID_PNG_BUFFER).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "[AddAnnotation] Invalid page",
+			markup: unit_test_utils.NewMarkupBuilder().
+				WithErrorBB(unit_test_utils.VALID_BBS_PARAMS).
+				WithPageData(unit_test_utils.INVALD_PNG_BUFFER).
+				Build(),
+			expectErr: true,
+		},
+	}
+	t.Title("AddAnnotation")
+	t.Tags("annotattionService")
+	for _, tt := range tests {
 
-		annotattionMockStorage := mock_repository.NewMockIAnotattionRepository(ctrl)
-		annotattionMockStorage.EXPECT().AddAnottation(markup)
+		t.WithNewStep(tt.name, func(sCtx provider.StepCtx) {
+			ctx := context.TODO()
+			ctrl := gomock.NewController(t)
 
-		annotService := service.NewAnnotattionService(unit_test_utils.MockLogger, annotattionMockStorage)
-		err := annotService.AddAnottation(markup)
+			annotattionMockStorage := mock_repository.NewMockIAnotattionRepository(ctrl)
 
-		sCtx.WithNewParameters("ctx", ctx, "markup", markup)
-		sCtx.Assert().NoError(err)
-	})
+			if !tt.expectErr {
+				annotattionMockStorage.EXPECT().AddAnottation(tt.markup)
+			}
 
-	t.Title("[AddAnnotation] Invalid markup BBs")
-	t.Tags("annotattion")
-	//	t.Parallel()
-	t.WithNewStep("Invalid markup BBs", func(sCtx provider.StepCtx) {
-		ctx := context.TODO()
-		ctrl := gomock.NewController(t)
-		markup := unit_test_utils.NewMarkupBuilder().
-			WithErrorBB(unit_test_utils.INVALID_BBS_PARAMS).
-			WithPageData(unit_test_utils.VALID_PNG_BUFFER).
-			Build()
+			annotService := service.NewAnnotattionService(unit_test_utils.MockLogger, annotattionMockStorage)
+			err := annotService.AddAnottation(tt.markup)
 
-		annotattionMockStorage := mock_repository.NewMockIAnotattionRepository(ctrl)
-		//annotattionMockStorage.EXPECT().AddAnottation(markup)
+			sCtx.WithNewParameters("ctx", ctx, "markup", tt.markup)
 
-		annotService := service.NewAnnotattionService(unit_test_utils.MockLogger, annotattionMockStorage)
-		err := annotService.AddAnottation(markup)
-		sCtx.WithNewParameters("ctx", ctx, "markup", markup, "error", err)
-
-		sCtx.Assert().Error(err)
-	})
-
-	t.Title("[AddAnnotation] Invalid page")
-	t.Tags("annotattion")
-	//t.Parallel()
-	t.WithNewStep("Invalid page", func(sCtx provider.StepCtx) {
-		ctx := context.TODO()
-		ctrl := gomock.NewController(t)
-		markup := unit_test_utils.NewMarkupBuilder().
-			WithErrorBB(unit_test_utils.VALID_BBS_PARAMS).
-			WithPageData(unit_test_utils.INVALD_PNG_BUFFER).
-			Build()
-
-		annotattionMockStorage := mock_repository.NewMockIAnotattionRepository(ctrl)
-		//		annotattionMockStorage.EXPECT().AddAnottation(markup)
-
-		annotService := service.NewAnnotattionService(unit_test_utils.MockLogger, annotattionMockStorage)
-		err := annotService.AddAnottation(markup)
-
-		sCtx.WithNewParameters("ctx", ctx, "markup", markup, "err", err)
-
-		sCtx.Assert().Error(err)
-	})
+			if tt.expectErr {
+				sCtx.Assert().Error(err)
+			} else {
+				sCtx.Assert().NoError(err)
+			}
+		})
+	}
 }
 
 func (s *AnnotattionServiceSuite) Test_areBBsValid(t provider.T) {
-	t.Title("[AreBBsValid] Valid slice")
-	t.Tags("annotattion")
-	//t.Parallel()
-	t.WithNewStep("Valid slice", func(sCtx provider.StepCtx) {
+	tests := []struct {
+		name    string
+		bbs     []float32
+		want    bool
+		wantErr string
+	}{
+		{
+			name:    "[AreBBsValid] Valid slice",
+			bbs:     []float32{1.0, 0.0, 0.0, 1.0},
+			want:    true,
+			wantErr: "",
+		},
+		{
+			name:    "[AreBBsValid] Invalid neg slice",
+			bbs:     []float32{-1.0, 0.0, 0.0, 1.0},
+			want:    false,
+			wantErr: "",
+		},
+		{
+			name:    "[AreBBsValid] Invalid bigger than 1 slice",
+			bbs:     []float32{1.0, 0.0, 0.0, 1.1},
+			want:    false,
+			wantErr: "",
+		},
+	}
+	t.Title("areBBsValid")
+	t.Tags("annotattionService")
+	for _, tt := range tests {
 
-		bbs := []float32{1.0, 0.0, 0.0, 1.0}
-		sCtx.WithNewParameters("bbs", bbs)
-		sCtx.Assert().True(service.AreBBsValid(bbs))
-	})
+		t.WithNewStep(tt.name, func(sCtx provider.StepCtx) {
+			sCtx.WithNewParameters("bbs", tt.bbs)
 
-	t.Title("[AreBBsValid] Invalid neg slice")
-	t.Tags("annotattion")
-	//	t.Parallel()
-	t.WithNewStep("Invalid neg slice", func(sCtx provider.StepCtx) {
-
-		bbs := []float32{-1.0, 0.0, 0.0, 1.0}
-		sCtx.WithNewParameters("bbs", bbs)
-		sCtx.Assert().False(service.AreBBsValid(bbs))
-	})
-
-	t.Title("[AreBBsValid] Invalid bigger than 1 slice")
-	t.Tags("annotattion")
-	//t.Parallel()
-	t.WithNewStep("Invalid bigger than 1 slice", func(sCtx provider.StepCtx) {
-		bbs := []float32{1.0, 0.0, 0.0, 1.1}
-
-		sCtx.WithNewParameters("bbs", bbs)
-		sCtx.Assert().False(service.AreBBsValid(bbs))
-	})
+			result := service.AreBBsValid(tt.bbs)
+			sCtx.Assert().Equal(tt.want, result)
+		})
+	}
 }
 
 func (s *AnnotattionServiceSuite) TestAnotattionService_DeleteAnotattion(t provider.T) {
-	t.Title("[DeleteAnotattion] Delete no error")
-	t.Tags("annotattion")
-	//t.Parallel()
-	t.WithNewStep("Delete no error", func(sCtx provider.StepCtx) {
-		ctx := context.TODO()
-		ctrl := gomock.NewController(t)
-		id := unit_test_utils.TEST_BASIC_ID
+	tests := []struct {
+		name      string
+		id        uint64
+		returnErr error
+		wantErr   bool
+	}{
+		{
+			name:      "[DeleteAnotattion] Delete no error",
+			id:        unit_test_utils.TEST_BASIC_ID,
+			returnErr: nil,
+			wantErr:   false,
+		},
+		{
+			name:      "[DeleteAnotattion] Delete with repository error",
+			id:        unit_test_utils.TEST_BASIC_ID,
+			returnErr: errors.New(""),
+			wantErr:   true,
+		},
+	}
 
-		annotattionMockStorage := mock_repository.NewMockIAnotattionRepository(ctrl)
-		annotattionMockStorage.EXPECT().DeleteAnotattion(id).Return(nil)
+	t.Title("DeleteAnotattion")
+	t.Tags("annotattionService")
+	for _, tt := range tests {
 
-		annotService := service.NewAnnotattionService(unit_test_utils.MockLogger, annotattionMockStorage)
-		err := annotService.DeleteAnotattion(id)
+		t.WithNewStep(tt.name, func(sCtx provider.StepCtx) {
+			ctx := context.TODO()
+			ctrl := gomock.NewController(t)
 
-		sCtx.WithNewParameters("ctx", ctx, "id", id)
-		sCtx.Assert().NoError(err)
-	})
+			annotattionMockStorage := mock_repository.NewMockIAnotattionRepository(ctrl)
+			annotattionMockStorage.EXPECT().DeleteAnotattion(tt.id).Return(tt.returnErr)
 
-	t.Title("[DeleteAnotattion] Delete with repository error")
-	t.Tags("annotattion")
-	//	t.Parallel()
-	t.WithNewStep("Delete with repository error", func(sCtx provider.StepCtx) {
-		ctx := context.TODO()
-		ctrl := gomock.NewController(t)
-		id := unit_test_utils.TEST_BASIC_ID
+			annotService := service.NewAnnotattionService(unit_test_utils.MockLogger, annotattionMockStorage)
+			err := annotService.DeleteAnotattion(tt.id)
 
-		annotattionMockStorage := mock_repository.NewMockIAnotattionRepository(ctrl)
-		annotattionMockStorage.EXPECT().DeleteAnotattion(id).Return(errors.New(""))
-
-		annotService := service.NewAnnotattionService(unit_test_utils.MockLogger, annotattionMockStorage)
-		err := annotService.DeleteAnotattion(id)
-
-		sCtx.WithNewParameters("ctx", ctx, "id", id, "error", err)
-		sCtx.Assert().Error(err)
-	})
+			sCtx.WithNewParameters("ctx", ctx, "id", tt.id)
+			if tt.wantErr {
+				sCtx.Assert().Error(err)
+			} else {
+				sCtx.Assert().NoError(err)
+			}
+		})
+	}
 }
 
 func (s *AnnotattionServiceSuite) TestAnotattionService_GetAnottationByID(t provider.T) {
@@ -185,10 +192,9 @@ func (s *AnnotattionServiceSuite) TestAnotattionService_GetAnottationByID(t prov
 			want:    nil,
 		},
 	}
-
+	t.Title("GetAnottationByID")
+	t.Tags("annotattionService")
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("annotattion")
 		//t.Parallel()
 		t.WithNewStep(tt.name, func(sCtx provider.StepCtx) {
 			ctx := context.TODO()
@@ -214,31 +220,41 @@ func (s *AnnotattionServiceSuite) TestAnotattionService_GetAnottationByID(t prov
 }
 
 func (s *AnnotattionServiceSuite) Test_checkPngFile(t provider.T) {
-	t.Title("[CheckPngFile] Valid PNG")
-	t.Tags("annotattion")
-	//t.Parallel()
-	t.WithNewStep("Valid PNG", func(sCtx provider.StepCtx) {
-		ctx := context.TODO()
-		pngFile := unit_test_utils.VALID_PNG_BUFFER
+	tests := []struct {
+		name      string
+		pngFile   []byte
+		expectErr bool
+	}{
+		{
+			name:      "[CheckPngFile] Valid PNG",
+			pngFile:   unit_test_utils.VALID_PNG_BUFFER,
+			expectErr: false,
+		},
+		{
+			name:      "[CheckPngFile] Invalid PNG",
+			pngFile:   unit_test_utils.INVALD_PNG_BUFFER,
+			expectErr: true,
+		},
+	}
+	t.Title("CheckPngFile")
+	t.Tags("annotattionService")
+	for _, tt := range tests {
+		// t.Parallel()
 
-		sCtx.WithNewParameters("ctx", ctx, "pngFile", pngFile)
-		err := service.CheckPngFile(pngFile)
-		sCtx.Assert().NoError(err)
-	})
+		t.WithNewStep(tt.name, func(sCtx provider.StepCtx) {
+			ctx := context.TODO()
 
-	t.Title("[CheckPngFile] Invalid PNG")
-	t.Tags("annotattion")
-	//t.Parallel()
-	t.WithNewStep("Invalid PNG", func(sCtx provider.StepCtx) {
-		ctx := context.TODO()
-		pngFile := unit_test_utils.INVALD_PNG_BUFFER
+			sCtx.WithNewParameters("ctx", ctx, "pngFile", tt.pngFile)
+			err := service.CheckPngFile(tt.pngFile)
 
-		sCtx.WithNewParameters("ctx", ctx, "pngFile", pngFile)
-		err := service.CheckPngFile(pngFile)
-		sCtx.Assert().Error(err)
-	})
+			if tt.expectErr {
+				sCtx.Assert().Error(err)
+			} else {
+				sCtx.Assert().NoError(err)
+			}
+		})
+	}
 }
-
 func TestAnotattionSuiteRunner(t *testing.T) {
 	suite.RunSuite(t, new(AnnotattionServiceSuite))
 }

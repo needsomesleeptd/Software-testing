@@ -32,59 +32,57 @@ func (s *DocumentRepoSuite) TestReportDataRepositoryAdapter(t provider.T) {
 	repo := rep_data_repo_adapter.NewDocumentRepositoryAdapter("/fake/path", ".txt", mockFS)
 
 	// Test suite for AddReport method
-	t.Run("AddReport", func(t provider.T) {
-		tests := []struct {
-			name        string
-			report      models.ErrorReport
-			expectedErr error
-			prepareMock func()
-			wantErr     bool
-		}{
-			{
-				name:   "Success",
-				report: unit_test_utils.NewErrReportMother().DefaultErrReport(),
-				prepareMock: func() {
-					mockFS.EXPECT().Stat(gomock.Any()).Return(nil, os.ErrNotExist)
-					mockFS.EXPECT().IsNotExist(gomock.Any()).Return(true)
-					mockFS.EXPECT().MkdirAll(gomock.Any(), os.FileMode(0755)).Return(nil) // Ensure MkdirAll is expected
-					mockFS.EXPECT().WriteFile(gomock.Any(), gomock.Any(), os.FileMode(0644)).Return(nil)
-				},
-				wantErr: false,
+
+	tests := []struct {
+		name        string
+		report      models.ErrorReport
+		expectedErr error
+		prepareMock func()
+		wantErr     bool
+	}{
+		{
+			name:   "Success",
+			report: unit_test_utils.NewErrReportMother().DefaultErrReport(),
+			prepareMock: func() {
+				mockFS.EXPECT().Stat(gomock.Any()).Return(nil, os.ErrNotExist)
+				mockFS.EXPECT().IsNotExist(gomock.Any()).Return(true)
+				mockFS.EXPECT().MkdirAll(gomock.Any(), os.FileMode(0755)).Return(nil) // Ensure MkdirAll is expected
+				mockFS.EXPECT().WriteFile(gomock.Any(), gomock.Any(), os.FileMode(0644)).Return(nil)
 			},
-			{
-				name:        "WriteFile Error",
-				report:      unit_test_utils.NewErrReportMother().DefaultErrReport(),
-				expectedErr: errors.Wrap(errors.New("write error"), "error in saving document data"),
-				prepareMock: func() {
-					mockFS.EXPECT().Stat(gomock.Any()).Return(nil, os.ErrNotExist)
-					mockFS.EXPECT().IsNotExist(gomock.Any()).Return(true)
-					mockFS.EXPECT().MkdirAll(gomock.Any(), os.FileMode(0755)).Return(nil) // Ensure MkdirAll is expected
-					mockFS.EXPECT().WriteFile(gomock.Any(), gomock.Any(), os.FileMode(0644)).Return(errors.New("write error"))
-				},
-				wantErr: true,
+			wantErr: false,
+		},
+		{
+			name:        "WriteFile Error",
+			report:      unit_test_utils.NewErrReportMother().DefaultErrReport(),
+			expectedErr: errors.Wrap(errors.New("write error"), "error in saving document data"),
+			prepareMock: func() {
+				mockFS.EXPECT().Stat(gomock.Any()).Return(nil, os.ErrNotExist)
+				mockFS.EXPECT().IsNotExist(gomock.Any()).Return(true)
+				mockFS.EXPECT().MkdirAll(gomock.Any(), os.FileMode(0755)).Return(nil) // Ensure MkdirAll is expected
+				mockFS.EXPECT().WriteFile(gomock.Any(), gomock.Any(), os.FileMode(0644)).Return(errors.New("write error"))
 			},
-		}
+			wantErr: true,
+		},
+	}
+	t.Title("AddReport")
+	t.Tag("reportRepo")
+	for _, tt := range tests {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
+			// Prepare mocks for each test case
+			tt.prepareMock()
 
-		for _, tt := range tests {
-			t.Run(tt.name, func(t provider.T) {
-				// Prepare mocks for each test case
-				tt.prepareMock()
+			// Call the method
+			err := repo.AddReport(&tt.report)
 
-				// Use Allure
-				t.Title(tt.name)
+			// Assert the results
+			if tt.expectedErr != nil {
+				assert.EqualError(t, err, tt.expectedErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 
-				// Call the method
-				err := repo.AddReport(&tt.report)
-
-				// Assert the results
-				if tt.expectedErr != nil {
-					assert.EqualError(t, err, tt.expectedErr.Error())
-				} else {
-					assert.NoError(t, err)
-				}
-			})
-		}
-	})
 }
 
 func (s *DocumentRepoSuite) TestDeleteReportByID(t provider.T) {
@@ -124,11 +122,12 @@ func (s *DocumentRepoSuite) TestDeleteReportByID(t provider.T) {
 		},
 	}
 
+	t.Title("DeleteReportByID")
+	t.Tag("reportRepo")
 	for _, tt := range tests {
-		t.Run(tt.name, func(t provider.T) {
+
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			tt.prepareMock()
-			t.Title(tt.name)
-			t.Tag("reportRepo")
 			err := repo.DeleteReportByID(tt.id)
 
 			if tt.wantErr {
@@ -181,8 +180,10 @@ func (s *DocumentRepoSuite) TestGetDocumentByID(t provider.T) {
 		},
 	}
 
+	t.Title("GetDocumentByID")
+	t.Tag("reportRepo")
 	for _, tt := range tests {
-		t.Run(tt.name, func(t provider.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			tt.prepareMock()
 			result, err := repo.GetDocumentByID(tt.id)
 

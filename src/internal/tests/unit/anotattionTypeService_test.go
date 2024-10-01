@@ -59,9 +59,9 @@ func (s *AnnotattionTypeServiceSuite) Test_AnotattionTypeService_AddAnottationTy
 			err: errors.Wrapf(unit_test_utils.ErrEmpty, service.ADDING_ANNOTATTION_ERR_STRF, unit_test_utils.TEST_BASIC_ID),
 		},
 	}
+	t.Title("AddAnotattionType")
+	t.Tags("annotattionType")
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("annotattionType")
 		//t.Parallel()
 		t.WithNewStep(tt.name, func(sCtx provider.StepCtx) {
 			ctx := context.TODO()
@@ -121,11 +121,12 @@ func (s *AnnotattionTypeServiceSuite) Test_AnotattionTypeService_DeleteAnotattio
 			err:     errors.Wrapf(unit_test_utils.ErrEmpty, service.DELETING_ANNOTATTION_ERR_STRF, unit_test_utils.TEST_BASIC_ID),
 		},
 	}
+	t.Title("DeleteAnotattionType")
+	t.Tags("annotattionType")
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("annotattionType")
-		//t.Parallel()
+
 		t.WithNewStep(tt.name, func(sCtx provider.StepCtx) {
+
 			ctx := context.TODO()
 			ctrl := gomock.NewController(t)
 			annotattionMockStorage := mock_repository.NewMockIAnotattionTypeRepository(ctrl)
@@ -186,9 +187,9 @@ func (s *AnnotattionTypeServiceSuite) Test_AnotattionTypeService_GetAnottationTy
 			want:    nil,
 		},
 	}
+	t.Title("GetAnottationTypeByID")
+	t.Tags("annotattionType")
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("annotattionType")
 		//t.Parallel()
 		t.WithNewStep(tt.name, func(sCtx provider.StepCtx) {
 			ctx := context.TODO()

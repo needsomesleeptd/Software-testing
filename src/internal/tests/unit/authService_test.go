@@ -93,11 +93,10 @@ func (s *AuthServiceSuite) Test_AuthService_Auth(t provider.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Title(tt.name)
+		t.Title("Auth")
 		t.Tags("auth")
-		//t.Parallel()
-		t.Run(tt.name, func(t provider.T) {
-			ctrl := gomock.NewController(t)
+		ctrl := gomock.NewController(t)
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			userMockStorage := mock_repository.NewMockIUserRepository(ctrl)
 			passwordHasherMock := mock_auth_utils.NewMockIPasswordHasher(ctrl)
 			tokenizerMock := mock_auth_utils.NewMockITokenHandler(ctrl)
@@ -197,12 +196,12 @@ func (s *AuthServiceSuite) Test_AuthService_SignIn(t provider.T) {
 			err:     errors.Wrapf(unit_test_utils.ErrEmpty, service.ERR_LOGIN_STRF+":%v", unit_test_utils.TEST_VALID_LOGIN, service.ErrWrongPassword),
 		},
 	}
+	t.Title("SignIn")
+	t.Tags("auth")
+	ctrl := gomock.NewController(t)
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("auth")
 		//t.Parallel()
-		t.Run(tt.name, func(t provider.T) {
-			ctrl := gomock.NewController(t)
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			userMockStorage := mock_repository.NewMockIUserRepository(ctrl)
 			passwordHasherMock := mock_auth_utils.NewMockIPasswordHasher(ctrl)
 			tokenizerMock := mock_auth_utils.NewMockITokenHandler(ctrl)

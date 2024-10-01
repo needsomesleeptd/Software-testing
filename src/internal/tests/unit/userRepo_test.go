@@ -71,7 +71,7 @@ func (s *UserRepoSuite) TestCreateUser(t provider.T) {
 	for _, tt := range tests {
 		t.Title(tt.name)
 		t.Tags("userRepo")
-		t.Run(tt.name, func(t provider.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			tt.setupMock()
 			err := repo.CreateUser(tt.args)
 			if tt.wantErr {
@@ -137,7 +137,7 @@ func (s *UserRepoSuite) TestGetUserByLogin(t provider.T) {
 	for _, tt := range tests {
 		t.Title(tt.name)
 		t.Tags("userRepo")
-		t.Run(tt.name, func(t provider.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			tt.setupMock()
 			user, err := repo.GetUserByLogin(tt.args)
 			if tt.wantErr {
@@ -201,11 +201,10 @@ func (s *UserRepoSuite) TestUpdateUserByLogin(t provider.T) {
 			wantErr: true,
 		},
 	}
-
+	t.Title("UpdateUserByLogin")
+	t.Tags("userRepo")
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("userRepo")
-		t.Run(tt.name, func(t provider.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			tt.setupMock()
 			err := repo.UpdateUserByLogin(tt.args, tt.user)
 			if tt.wantErr {
@@ -265,11 +264,10 @@ func (s *UserRepoSuite) TestGetAllUsers(t provider.T) {
 			wantErr: true,
 		},
 	}
-
+	t.Title("GetAllUsers")
+	t.Tags("userRepo")
 	for _, tt := range tests {
-		t.Title(tt.name)
-		t.Tags("userRepo")
-		t.Run(tt.name, func(t provider.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			tt.setupMock()
 			users, err := repo.GetAllUsers()
 			if tt.wantErr {

@@ -5,9 +5,9 @@ import (
 	"annotater/internal/models"
 	models_da "annotater/internal/models/modelsDA"
 	unit_test_utils "annotater/internal/tests/utils"
-	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/ozontech/allure-go/pkg/framework/provider"
 	"github.com/ozontech/allure-go/pkg/framework/suite"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
@@ -19,7 +19,7 @@ type AnnotationRepositorySuite struct {
 	suite.Suite
 }
 
-func TestAddAnottation(t *testing.T) {
+func (s *AnnotationRepositorySuite) TestAddAnottation(t provider.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	require.NoError(t, err)
 	defer db.Close()
@@ -68,7 +68,7 @@ func TestAddAnottation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			tt.setupMock()
 			err := repo.AddAnottation(tt.args)
 			if tt.wantErr {
@@ -84,7 +84,7 @@ func TestAddAnottation(t *testing.T) {
 	}
 }
 
-func TestDeleteAnotattion(t *testing.T) {
+func (s *AnnotationRepositorySuite) TestDeleteAnotattion(t provider.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	require.NoError(t, err)
 	defer db.Close()
@@ -128,7 +128,7 @@ func TestDeleteAnotattion(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			tt.setupMock()
 			err := repo.DeleteAnotattion(tt.args)
 			if tt.wantErr {
@@ -144,7 +144,7 @@ func TestDeleteAnotattion(t *testing.T) {
 	}
 }
 
-func TestGetAnottationByID(t *testing.T) {
+func (s *AnnotationRepositorySuite) TestGetAnottationByID(t provider.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	require.NoError(t, err)
 	defer db.Close()
@@ -191,7 +191,7 @@ func TestGetAnottationByID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			tt.setupMock()
 			result, err := repo.GetAnottationByID(tt.args)
 			if tt.wantErr {
@@ -209,7 +209,7 @@ func TestGetAnottationByID(t *testing.T) {
 	}
 }
 
-func TestGetAnottationsByUserID(t *testing.T) {
+func (s *AnnotationRepositorySuite) TestGetAnottationsByUserID(t provider.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	require.NoError(t, err)
 	defer db.Close()
@@ -255,7 +255,7 @@ func TestGetAnottationsByUserID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			tt.setupMock()
 			result, err := repo.GetAnottationsByUserID(tt.args)
 			if tt.wantErr {
@@ -273,7 +273,7 @@ func TestGetAnottationsByUserID(t *testing.T) {
 	}
 }
 
-func TestGetAllAnottations(t *testing.T) {
+func (s *AnnotationRepositorySuite) TestGetAllAnottations(t provider.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer db.Close()
@@ -314,7 +314,7 @@ func TestGetAllAnottations(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			tt.setupMock()
 			result, err := repo.GetAllAnottations()
 			if tt.wantErr {
