@@ -65,11 +65,11 @@ func (repo *AnotattionRepositoryAdapter) GetAnottationByID(id uint64) (*models.M
 	}
 
 	if tx.Error != nil {
-		return nil, errors.Wrap(tx.Error, "Error in getting anotattion type")
+		return nil, errors.Wrap(tx.Error, "Error in getting anotattion")
 	}
 	markUpType, err := models_da.FromDaMarkup(&markUpDA)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error in getting anotattion type")
+		return nil, errors.Wrap(err, "Error in getting anotattion")
 	}
 	return &markUpType, nil
 }
@@ -90,7 +90,7 @@ func (repo *AnotattionRepositoryAdapter) GetAllAnottations() ([]models.Markup, e
 	var markUpsDA []models_da.Markup
 	tx := repo.db.Find(&markUpsDA)
 	if tx.Error != nil {
-		return nil, errors.Wrap(tx.Error, "Error in getting anotattion type")
+		return nil, errors.Wrap(tx.Error, "Error in getting anotattion")
 	}
 	markUps, err := models_da.FromDaMarkupSlice(markUpsDA)
 	if err != nil {
