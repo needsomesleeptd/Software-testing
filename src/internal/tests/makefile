@@ -1,16 +1,19 @@
-go-test-command:
-	go test -v ./unit/...
-
+# Запуск всех unit тестов проекта
 test:
 	rm -rf allure-results
-	export ALLURE_OUTPUT_PATH="/home/andrew/uni/testing/Software-testing/src/internal/tests" && go test ./unit/... --race --parallel 11
-	
+	export ALLURE_OUTPUT_PATH="/home/andrew/uni/testing/Software-testing/src/internal/tests" && go test ./... --race --parallel 11; \
+	if [ $$? -ne 0 ]; then \
+		echo "Tests failed"; \
+	fi
+
+# Создание allure отчета по результатам теста
 allure:
 	cp -R allure-reports/history allure-results
 	rm -rf allure-reports
 	allure generate allure-results -o allure-reports
 	allure serve allure-results -p 4000
 
+# Запуск всех unit тестов проекта с последующим созданием allure отчета
 report: test allure
 
-.PHONY: go-tests-template mockery-template go-test-command test allure report
+.PHONY: test allure report
