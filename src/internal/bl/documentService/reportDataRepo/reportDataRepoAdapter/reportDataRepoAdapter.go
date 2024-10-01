@@ -2,6 +2,7 @@ package rep_data_repo_adapter
 
 import (
 	rep_data_repo "annotater/internal/bl/documentService/reportDataRepo"
+	filesystem "annotater/internal/bl/documentService/reportDataRepo/reportDataRepoAdapter/filesytem"
 	"annotater/internal/models"
 	"fmt"
 	"os"
@@ -13,25 +14,27 @@ import (
 type ReportDataRepositoryAdapter struct {
 	root          string
 	fileExtension string
+	fs            filesystem.IFileSystem
 }
 
-func NewDocumentRepositoryAdapter(rootSrc string, ext string) rep_data_repo.IReportDataRepository {
+func NewDocumentRepositoryAdapter(rootSrc string, ext string, fs filesystem.IFileSystem) rep_data_repo.IReportDataRepository {
 	return &ReportDataRepositoryAdapter{
 		root:          rootSrc,
 		fileExtension: ext,
+		fs:            fs,
 	}
 }
 
 func (repo *ReportDataRepositoryAdapter) MakeDir(dir string) error {
 	dirPath := fmt.Sprintf("%s/%s", repo.root, dir) + repo.fileExtension
-	return os.MkdirAll(dirPath, 0755)
+	return repo.fs.MkdirAll(dirPath, os.FileMode(0755))
 }
 
 func (repo *ReportDataRepositoryAdapter) Exists(path string) bool {
 	fullPath := fmt.Sprintf("%s/%s", repo.root, path) + repo.fileExtension
-	_, err := os.Stat(fullPath)
+	_, err := repo.fs.Stat(fullPath)
 
-	return !os.IsNotExist(err)
+	return !repo.fs.IsNotExist(err)
 }
 
 func (repo *ReportDataRepositoryAdapter) AddReport(rep *models.ErrorReport) error {
@@ -44,7 +47,7 @@ func (repo *ReportDataRepositoryAdapter) AddReport(rep *models.ErrorReport) erro
 
 	filePath := fmt.Sprintf("%s/%s", repo.root, rep.DocumentID) + repo.fileExtension
 
-	err := os.WriteFile(filePath, rep.ReportData, 0644)
+	err := repo.fs.WriteFile(filePath, rep.ReportData, os.FileMode(0644))
 	if err != nil {
 		return errors.Wrap(err, "error in saving document data")
 	}
@@ -54,7 +57,7 @@ func (repo *ReportDataRepositoryAdapter) AddReport(rep *models.ErrorReport) erro
 
 func (repo *ReportDataRepositoryAdapter) DeleteReportByID(id uuid.UUID) error {
 	filePath := fmt.Sprintf("%s/%s", repo.root, id) + repo.fileExtension
-	err := os.Remove(filePath)
+	err := repo.fs.Remove(filePath)
 	if err != nil {
 		return errors.Wrap(err, "error in deleting document data")
 	}
@@ -64,7 +67,7 @@ func (repo *ReportDataRepositoryAdapter) DeleteReportByID(id uuid.UUID) error {
 
 func (repo *ReportDataRepositoryAdapter) GetDocumentByID(id uuid.UUID) (*models.ErrorReport, error) {
 	filePath := fmt.Sprintf("%s/%s", repo.root, id) + repo.fileExtension
-	fileBytes, err := os.ReadFile(filePath)
+	fileBytes, err := repo.fs.ReadFile(filePath)
 
 	if err == os.ErrNotExist {
 		return nil, models.ErrNotFound

@@ -12,6 +12,7 @@ import (
 	doc_data_repo_adapter "annotater/internal/bl/documentService/documentDataRepo/documentDataRepo"
 	document_repo_adapter "annotater/internal/bl/documentService/documentMetaDataRepo/documentMetaDataRepoAdapter"
 	rep_data_repo_adapter "annotater/internal/bl/documentService/reportDataRepo/reportDataRepoAdapter"
+	filesystem "annotater/internal/bl/documentService/reportDataRepo/reportDataRepoAdapter/filesytem"
 	rep_creator_service "annotater/internal/bl/reportCreatorService"
 	report_creator "annotater/internal/bl/reportCreatorService/reportCreator"
 	service "annotater/internal/bl/userService"
@@ -107,7 +108,8 @@ func main() {
 
 	documentStorage := doc_data_repo_adapter.NewDocumentRepositoryAdapter(config.DocumentPath, config.DocumentExt)
 
-	reportStorage := rep_data_repo_adapter.NewDocumentRepositoryAdapter(config.ReportPath, config.ReportExt)
+	filesystem := filesystem.OSFileSystem{}
+	reportStorage := rep_data_repo_adapter.NewDocumentRepositoryAdapter(config.ReportPath, config.ReportExt, filesystem)
 
 	documentRepo := document_repo_adapter.NewDocumentRepositoryAdapter(db)
 	documentService := document_service.NewDocumentService(log, documentRepo, documentStorage, reportStorage, reportCreatorService)

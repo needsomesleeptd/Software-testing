@@ -26,5 +26,6 @@ go.work.sum
 
 *mocks*
 *allure-results*
+*allure-reports*
 *idea*
 *vscode*
