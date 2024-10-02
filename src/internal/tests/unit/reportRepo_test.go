@@ -5,6 +5,7 @@ import (
 	mock_filesystem "annotater/internal/mocks/bl/documentService/reportDataRepo/reportDataRepoAdapter/filesytem"
 	"annotater/internal/models"
 	unit_test_utils "annotater/internal/tests/utils"
+	"fmt"
 	"os"
 	"testing"
 
@@ -29,7 +30,7 @@ func (s *DocumentRepoSuite) TestReportDataRepositoryAdapter(t provider.T) {
 	mockFS := mock_filesystem.NewMockIFileSystem(ctrl)
 
 	// Create the repository adapter
-	repo := rep_data_repo_adapter.NewDocumentRepositoryAdapter("/fake/path", ".txt", mockFS)
+	repo := rep_data_repo_adapter.NewDocumentRepositoryAdapter(unit_test_utils.TEST_DEFAULT_ROOT, unit_test_utils.TEST_DEFAULT_EXT, mockFS)
 
 	// Test suite for AddReport method
 
@@ -44,10 +45,13 @@ func (s *DocumentRepoSuite) TestReportDataRepositoryAdapter(t provider.T) {
 			name:   "Success",
 			report: unit_test_utils.NewErrReportMother().DefaultErrReport(),
 			prepareMock: func() {
-				mockFS.EXPECT().Stat(gomock.Any()).Return(nil, os.ErrNotExist)
-				mockFS.EXPECT().IsNotExist(gomock.Any()).Return(true)
-				mockFS.EXPECT().MkdirAll(gomock.Any(), os.FileMode(0755)).Return(nil) // Ensure MkdirAll is expected
-				mockFS.EXPECT().WriteFile(gomock.Any(), gomock.Any(), os.FileMode(0644)).Return(nil)
+				report := unit_test_utils.NewErrReportMother().DefaultErrReport()
+				fullPath := fmt.Sprintf("%s/%s", unit_test_utils.TEST_DEFAULT_ROOT, unit_test_utils.TEST_DEFAULT_ROOT) + unit_test_utils.TEST_DEFAULT_EXT
+				filepath := fmt.Sprintf("%s/%s", unit_test_utils.TEST_DEFAULT_ROOT, report.DocumentID) + unit_test_utils.TEST_DEFAULT_EXT
+				mockFS.EXPECT().Stat(fullPath).Return(nil, os.ErrNotExist)
+				mockFS.EXPECT().IsNotExist(os.ErrNotExist).Return(true)
+				mockFS.EXPECT().MkdirAll(fullPath, os.FileMode(0755)).Return(nil) // Ensure MkdirAll is expected
+				mockFS.EXPECT().WriteFile(filepath, report.ReportData, os.FileMode(0644)).Return(nil)
 			},
 			wantErr: false,
 		},
@@ -94,7 +98,7 @@ func (s *DocumentRepoSuite) TestDeleteReportByID(t provider.T) {
 	mockFS := mock_filesystem.NewMockIFileSystem(ctrl)
 
 	// Create the repository adapter
-	repo := rep_data_repo_adapter.NewDocumentRepositoryAdapter("/fake/path", ".txt", mockFS)
+	repo := rep_data_repo_adapter.NewDocumentRepositoryAdapter(unit_test_utils.TEST_DEFAULT_ROOT, unit_test_utils.TEST_DEFAULT_EXT, mockFS)
 
 	tests := []struct {
 		name        string
@@ -108,7 +112,7 @@ func (s *DocumentRepoSuite) TestDeleteReportByID(t provider.T) {
 			id:      unit_test_utils.TEST_VALID_UUID,
 			wantErr: false,
 			prepareMock: func() {
-				mockFS.EXPECT().Remove("/fake/path/" + unit_test_utils.TEST_VALID_UUID.String() + ".txt").Return(nil)
+				mockFS.EXPECT().Remove(unit_test_utils.TEST_DEFAULT_ROOT + "/" + unit_test_utils.TEST_VALID_UUID.String() + unit_test_utils.TEST_DEFAULT_EXT).Return(nil)
 			},
 		},
 		{
@@ -117,7 +121,7 @@ func (s *DocumentRepoSuite) TestDeleteReportByID(t provider.T) {
 			expectedErr: errors.Wrap(errors.New("remove error"), "error in deleting document data"),
 			wantErr:     true,
 			prepareMock: func() {
-				mockFS.EXPECT().Remove("/fake/path/" + unit_test_utils.TEST_VALID_UUID.String() + ".txt").Return(errors.New("remove error"))
+				mockFS.EXPECT().Remove(unit_test_utils.TEST_DEFAULT_ROOT + "/" + unit_test_utils.TEST_VALID_UUID.String() + unit_test_utils.TEST_DEFAULT_EXT).Return(errors.New("remove error"))
 			},
 		},
 	}

@@ -22,7 +22,7 @@ type DocumentMetaDataRepoSuite struct {
 }
 
 func (s *DocumentMetaDataRepoSuite) TestDocumentMetaDataRepositoryAdapter_AddDocument(t provider.T) {
-	t.Parallel()
+	t.Title("AddDocument")
 
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	require.NoError(t, err)
@@ -82,7 +82,7 @@ func (s *DocumentMetaDataRepoSuite) TestDocumentMetaDataRepositoryAdapter_AddDoc
 }
 
 func (s *DocumentMetaDataRepoSuite) TestDocumentMetaDataRepositoryAdapter_GetDocumentByID(t provider.T) {
-	t.Parallel()
+	t.Title("GetDocumentByID")
 
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	require.NoError(t, err)
@@ -146,7 +146,7 @@ func (s *DocumentMetaDataRepoSuite) TestDocumentMetaDataRepositoryAdapter_GetDoc
 }
 
 func (s *DocumentMetaDataRepoSuite) TestDocumentMetaDataRepositoryAdapter_DeleteDocumentByID(t provider.T) {
-
+	t.Title("DeleteDocumentByID")
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	require.NoError(t, err)
 	defer db.Close()
@@ -204,7 +204,7 @@ func (s *DocumentMetaDataRepoSuite) TestDocumentMetaDataRepositoryAdapter_Delete
 }
 
 func (s *DocumentMetaDataRepoSuite) TestDocumentMetaDataRepositoryAdapter_GetDocumentsByCreatorID(t provider.T) {
-
+	t.Title("GetDocumentsByCreatorID")
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	require.NoError(t, err)
 	defer db.Close()
