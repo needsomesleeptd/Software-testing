@@ -467,6 +467,139 @@ func (s *AnnotattionTypeServiceSuite) TestAnotattionTypeService_GetAnottationTyp
 	}
 }
 
+func (s *AnnotattionTypeServiceSuite) TestAnotattionTypeService_GetAllAnotattionTypes(t provider.T) {
+
+	tests := []struct {
+		name           string
+		setupMock      func(mock sqlmock.Sqlmock)
+		expectedLength int
+		expectError    bool
+	}{
+		{
+			name: "Success - Two Types",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "creator_id"}).
+					AddRow(1, 1).
+					AddRow(2, 2)
+
+				mock.ExpectQuery(`SELECT * FROM "markup_types"`).
+					WillReturnRows(rows)
+			},
+			expectedLength: 2,
+			expectError:    false,
+		},
+		{
+			name: "Success - No Types",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "creator_id"})
+
+				mock.ExpectQuery(`SELECT * FROM "markup_types"`).
+					WillReturnRows(rows)
+			},
+			expectedLength: 0,
+			expectError:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
+
+			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+			require.NoError(t, err)
+			defer db.Close()
+
+			gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+			require.NoError(t, err)
+
+			annotattionTypeRepo := repo_adapter.NewAnotattionTypeRepositoryAdapter(gormDB)
+
+			// Setup the mock expectations
+			if tt.setupMock != nil {
+				tt.setupMock(mock)
+			}
+
+			types, err := annotattionTypeRepo.GetAllAnottationTypes()
+			if (err != nil) != tt.expectError {
+				t.Errorf("Expected error: %v, got: %v", tt.expectError, err)
+			}
+
+			if len(types) != tt.expectedLength {
+				t.Errorf("Expected %d annotation types, got %d", tt.expectedLength, len(types))
+			}
+
+			mock.ExpectationsWereMet()
+		})
+	}
+}
+
+func (s *AnnotattionTypeServiceSuite) TestAnotattionTypeService_GetAnottationTypesByUserID(t provider.T) {
+	tests := []struct {
+		name           string
+		userID         uint64
+		setupMock      func(mock sqlmock.Sqlmock)
+		expectedLength int
+		expectError    bool
+	}{
+		{
+			name:   "Success - Two Types for User",
+			userID: 1,
+			setupMock: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "creator_id"}).
+					AddRow(1, 1).
+					AddRow(2, 1)
+
+				mock.ExpectQuery(`SELECT * FROM "markup_types" WHERE creator_id = $1`).
+					WithArgs(1).
+					WillReturnRows(rows)
+			},
+			expectedLength: 2,
+			expectError:    false,
+		},
+		{
+			name:   "Success - No Types for User",
+			userID: 2,
+			setupMock: func(mock sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{"id", "creator_id"})
+
+				mock.ExpectQuery(`SELECT * FROM "markup_types" WHERE creator_id = $1`).
+					WithArgs(2).
+					WillReturnRows(rows)
+			},
+			expectedLength: 0,
+			expectError:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.WithNewStep(tt.name, func(t provider.StepCtx) {
+			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+			require.NoError(t, err)
+			defer db.Close()
+
+			gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+			require.NoError(t, err)
+
+			annotattionTypeRepo := repo_adapter.NewAnotattionTypeRepositoryAdapter(gormDB)
+
+			// Setup the mock expectations
+			if tt.setupMock != nil {
+				tt.setupMock(mock)
+			}
+
+			types, err := annotattionTypeRepo.GetAnottationTypesByUserID(tt.userID)
+			if (err != nil) != tt.expectError {
+				t.Errorf("Expected error: %v, got: %v", tt.expectError, err)
+			}
+
+			if len(types) != tt.expectedLength {
+				t.Errorf("Expected %d annotation types, got %d", tt.expectedLength, len(types))
+			}
+
+			mock.ExpectationsWereMet()
+		})
+	}
+}
+
 func TestAnotattionTypeSuiteRunner(t *testing.T) {
 	suite.RunSuite(t, new(AnnotattionTypeServiceSuite))
 }
