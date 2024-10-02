@@ -500,6 +500,8 @@ func (s *AnnotattionTypeServiceSuite) TestAnotattionTypeService_GetAllAnotattion
 			expectError:    false,
 		},
 	}
+	t.Title("GetAllAnotattionTypesClassic")
+	t.Tags("annotattionType")
 
 	for _, tt := range tests {
 		t.WithNewStep(tt.name, func(t provider.StepCtx) {
@@ -569,7 +571,8 @@ func (s *AnnotattionTypeServiceSuite) TestAnotattionTypeService_GetAnottationTyp
 			expectError:    false,
 		},
 	}
-
+	t.Title("GetAnottationTypesByUserID")
+	t.Tags("annotattionType")
 	for _, tt := range tests {
 		t.WithNewStep(tt.name, func(t provider.StepCtx) {
 			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
