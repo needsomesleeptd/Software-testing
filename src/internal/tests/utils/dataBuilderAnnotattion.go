@@ -50,6 +50,11 @@ func NewMarkupBuilder() *MarkupBuilder {
 	return &MarkupBuilder{markup: &models.Markup{}}
 }
 
+func (b *MarkupBuilder) WithCreatorID(creatorID uint64) *MarkupBuilder {
+	b.markup.CreatorID = creatorID
+	return b
+}
+
 func (b *MarkupBuilder) WithErrorBB(errorBB []float32) *MarkupBuilder {
 	b.markup.ErrorBB = errorBB
 	return b
@@ -71,4 +76,15 @@ func (b *MarkupBuilder) WithClassLabel(classLabel uint64) *MarkupBuilder {
 
 func (b *MarkupBuilder) Build() *models.Markup {
 	return b.markup
+}
+
+func (b *MarkupBuilder) GetCopy() *models.Markup {
+	copiedMarkup := &models.Markup{
+		ID:         b.markup.ID,
+		CreatorID:  b.markup.CreatorID,
+		PageData:   append([]byte(nil), b.markup.PageData...),
+		ErrorBB:    append([]float32(nil), b.markup.ErrorBB...),
+		ClassLabel: b.markup.ClassLabel,
+	}
+	return copiedMarkup
 }

@@ -491,6 +491,173 @@ func (s *AnnotattionServiceSuite) Test_checkPngFile(t provider.T) {
 		})
 	}
 }
+
+func (s *AnnotattionServiceSuite) TestAnotattionService_GetAnottationByUserID_Classic(t provider.T) {
+	tests := []struct {
+		name      string
+		userID    uint64
+		setupMock func(mock sqlmock.Sqlmock)
+		expected  []models.Markup
+		expectErr bool
+	}{
+		{
+			name:   "[GetAnottationByUserID] Success with two annotations",
+			userID: unit_test_utils.TEST_BASIC_ID,
+			setupMock: func(mock sqlmock.Sqlmock) {
+				builder := unit_test_utils.NewMarkupBuilder()
+				markup1 := builder.WithCreatorID(unit_test_utils.TEST_BASIC_ID).
+					WithEID(1).Build()
+
+				markup2 := builder.WithCreatorID(unit_test_utils.TEST_BASIC_ID).
+					WithEID(2).Build()
+
+				markup1Da, _ := models_da.ToDaMarkup(*markup1)
+				markup2Da, _ := models_da.ToDaMarkup(*markup2)
+				rows := sqlmock.NewRows([]string{"id", "creator_id", "page_data", "error_bb"}).
+					AddRow(1, markup2Da.CreatorID, markup2Da.PageData, markup2Da.ErrorBB).
+					AddRow(2, markup1Da.CreatorID, markup1Da.PageData, markup1Da.ErrorBB)
+
+				mock.ExpectQuery(`SELECT * FROM "markups" WHERE creator_id = $1`).
+					WithArgs(unit_test_utils.TEST_BASIC_ID).
+					WillReturnRows(rows)
+			},
+			expected: []models.Markup{
+				*unit_test_utils.NewMarkupBuilder().WithCreatorID(unit_test_utils.TEST_BASIC_ID).
+					WithEID(1).Build(),
+				*unit_test_utils.NewMarkupBuilder().WithCreatorID(unit_test_utils.TEST_BASIC_ID).
+					WithEID(2).Build(),
+			},
+			expectErr: false,
+		},
+		{
+			name:   "[GetAnottationByUserID] Error in repository",
+			userID: unit_test_utils.TEST_BASIC_ID,
+			setupMock: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery(`SELECT * FROM "markups" WHERE creator_id = $1`).
+					WithArgs(unit_test_utils.TEST_BASIC_ID).
+					WillReturnError(errors.New("repository error"))
+			},
+			expected:  nil,
+			expectErr: true,
+		},
+	}
+
+	t.Title("GetAnottationByUserID")
+	t.Tags("annotattionService")
+	for _, tt := range tests {
+		t.WithNewStep(tt.name, func(sCtx provider.StepCtx) {
+			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+			require.NoError(t, err)
+			defer db.Close()
+
+			gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+			require.NoError(t, err)
+
+			annotattionRepo := repo_adapter.NewAnotattionRepositoryAdapter(gormDB)
+			annotService := service.NewAnnotattionService(unit_test_utils.MockLogger, annotattionRepo)
+
+			// Setup the mock expectations
+			tt.setupMock(mock)
+
+			markups, err := annotService.GetAnottationByUserID(tt.userID)
+
+			if tt.expectErr {
+				sCtx.Assert().Error(err)
+			} else {
+				sCtx.Assert().NoError(err)
+				sCtx.Assert().Equal(markups, tt.expected)
+			}
+
+			// Ensure all expectations were met
+			err = mock.ExpectationsWereMet()
+			require.NoError(t, err)
+		})
+	}
+}
+
+func (s *AnnotattionServiceSuite) TestAnotattionService_GetAllAnotattions_Classic(t provider.T) {
+	tests := []struct {
+		name      string
+		setupMock func(mock sqlmock.Sqlmock)
+		expected  []models.Markup
+		expectErr bool
+	}{
+		{
+			name: "[GetAllAnotattions] Success with multiple annotations",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				builder := unit_test_utils.NewMarkupBuilder()
+
+				markup1 := builder.WithCreatorID(unit_test_utils.TEST_BASIC_ID).
+					WithEID(1).GetCopy()
+				markup2 := builder.WithCreatorID(unit_test_utils.TEST_BASIC_ID).
+					WithEID(2).GetCopy()
+
+				markup1Da, _ := models_da.ToDaMarkup(*markup1)
+				markup2Da, _ := models_da.ToDaMarkup(*markup2)
+
+				// Mocking multiple rows
+				rows := sqlmock.NewRows([]string{"id", "creator_id", "page_data", "error_bb"}).
+					AddRow(markup1Da.ID, markup1Da.CreatorID, markup1Da.PageData, markup1Da.ErrorBB).
+					AddRow(markup2Da.ID, markup2Da.CreatorID, markup2Da.PageData, markup2Da.ErrorBB)
+
+				// Expect the query and return mocked rows
+				mock.ExpectQuery(`SELECT * FROM "markups"`).
+					WillReturnRows(rows)
+			},
+			expected: []models.Markup{
+				*unit_test_utils.NewMarkupBuilder().WithCreatorID(unit_test_utils.TEST_BASIC_ID).
+					WithEID(1).Build(),
+				*unit_test_utils.NewMarkupBuilder().WithCreatorID(unit_test_utils.TEST_BASIC_ID).
+					WithEID(2).Build(),
+			},
+			expectErr: false,
+		},
+		{
+			name: "[GetAllAnotattions] Error in repository",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				// Mocking an error case
+				mock.ExpectQuery(`SELECT * FROM "markups"`).
+					WillReturnError(errors.New("repository error"))
+			},
+			expected:  nil,
+			expectErr: true,
+		},
+	}
+
+	t.Title("GetAllAnotattions")
+	t.Tags("annotattionService")
+
+	for _, tt := range tests {
+		t.WithNewStep(tt.name, func(sCtx provider.StepCtx) {
+			db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+			require.NoError(t, err)
+			defer db.Close()
+
+			gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+			require.NoError(t, err)
+
+			annotattionRepo := repo_adapter.NewAnotattionRepositoryAdapter(gormDB)
+			annotService := service.NewAnnotattionService(unit_test_utils.MockLogger, annotattionRepo)
+
+			// Setup the mock expectations
+			tt.setupMock(mock)
+
+			markups, err := annotService.GetAllAnottations()
+
+			if tt.expectErr {
+				sCtx.Assert().Error(err)
+			} else {
+				sCtx.Assert().NoError(err)
+				sCtx.Assert().Equal(markups, tt.expected)
+			}
+
+			// Ensure all expectations were met
+			err = mock.ExpectationsWereMet()
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestAnotattionSuiteRunner(t *testing.T) {
 	suite.RunSuite(t, new(AnnotattionServiceSuite))
 }
