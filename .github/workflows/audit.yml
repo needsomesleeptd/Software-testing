@@ -1,0 +1,51 @@
+name: Audit
+
+on:
+  push:
+    branches:
+    - 'lab_02*'
+  pull_request:
+    branches:
+    - 'lab_02*'
+
+jobs:
+
+  audit:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: ./meet_match/net/backend
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.22.2
+
+
+  
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Install staticcheck
+      run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+    - name: Run staticcheck
+      continue-on-error: true
+      run: staticcheck ./...
+
+    - name: Install golint
+      run: go install golang.org/x/lint/golint@latest
+
+    - name: Run golint
+      continue-on-error: true
+      run: golint ./...
+    - name: Run tests
+      run: go test -race -vet=off ./...
