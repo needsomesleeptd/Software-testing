@@ -4,150 +4,146 @@ package integration_tests
 
 import (
 	nn_adapter "annotater/internal/bl/NN/NNAdapter"
-	nn_model_handler "annotater/internal/bl/NN/NNAdapter/NNmodelhandler"
 	service "annotater/internal/bl/documentService"
-	document_repo_adapter "annotater/internal/bl/documentService/documentRepo/documentRepoAdapter"
-	integration_utils "annotater/internal/intergration_tests/utils"
+	document_data_repo_adapter "annotater/internal/bl/documentService/documentDataRepo/documentDataRepo"
+	document_metadata_repo_adapter "annotater/internal/bl/documentService/documentMetaDataRepo/documentMetaDataRepoAdapter"
+	filesystem "annotater/internal/bl/documentService/reportDataRepo/reportDataRepoAdapter/filesytem"
+	report_creator "annotater/internal/bl/reportCreatorService/reportCreator"
 	mock_nn_model_handler "annotater/internal/mocks/bl/NN/NNAdapter/NNmodelhandler"
 	"annotater/internal/models"
-	models_dto "annotater/internal/models/dto"
 	models_da "annotater/internal/models/modelsDA"
-	"bytes"
-	"log"
+	unit_test_utils "annotater/internal/tests/utils"
+	"context"
+	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/signintech/gopdf"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/suite"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-var (
-	TEST_VALID_PDF *gopdf.GoPdf = &gopdf.GoPdf{}
-)
-
-func createPDFBuffer(pdf *gopdf.GoPdf) []byte {
-	if pdf == nil {
-		return []byte{1}
-	}
-	pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
-	var buf bytes.Buffer
-	pdf.WriteTo(&buf)
-
-	return buf.Bytes()
-}
-
-type UsecaseRepositoryTestSuite struct {
+type ITRepositoryTestSuite struct {
 	suite.Suite
-	db *gorm.DB
+	db          *gorm.DB
+	pgContainer testcontainers.Container
+	fs          filesystem.IFileSystem
 }
 
-func (suite *UsecaseRepositoryTestSuite) SetupTest() {
-	db, err := gorm.Open(postgres.New(integration_utils.TestCfg), &gorm.Config{})
-	if err != nil {
-		log.Fatal(err)
+func (suite *ITRepositoryTestSuite) SetupTest() {
+	ctx := context.Background()
+	req := testcontainers.ContainerRequest{
+		Image:        "postgres:latest",
+		ExposedPorts: []string{"5432/tcp"},
+		Env: map[string]string{
+			"POSTGRES_USER":     "test_user",
+			"POSTGRES_PASSWORD": "test_password",
+			"POSTGRES_DB":       "test_db",
+		},
+		WaitingFor: wait.ForListeningPort("5432/tcp"),
 	}
+	pgContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	suite.Require().NoError(err)
+	suite.pgContainer = pgContainer
+
+	// Get the host and port for the database
+	host, err := pgContainer.Host(ctx)
+	suite.Require().NoError(err)
+	port, err := pgContainer.MappedPort(ctx, "5432")
+	suite.Require().NoError(err)
+
+	// Open a new database connection for each test
+	dsn := fmt.Sprintf("host=%s port=%s user=test_user password=test_password dbname=test_db sslmode=disable", host, port.Port())
+	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}), &gorm.Config{})
+	suite.Require().NoError(err)
 
 	db.AutoMigrate(&models_da.Document{})
 
 	suite.db = db
+	suite.pgContainer = pgContainer
+	suite.fs = afero.NewOsFs()
 }
 
-func (suite *UsecaseRepositoryTestSuite) TearDownTest() {
+func (suite *ITRepositoryTestSuite) TearDownTest() {
 
 	suite.db.Migrator().DropTable(&models_da.Document{})
-
+	ctx := context.Background()
+	err := suite.pgContainer.Terminate(ctx)
+	suite.Require().NoError(err)
 }
 
-// testing Document Service
-func (suite *UsecaseRepositoryTestSuite) TestUsecaseAddDocument() {
+type UsecaseRepositoryTestSuite struct {
+	suite.Suite
+	db          *gorm.DB
+	pgContainer testcontainers.Container
+}
+
+func (suite *ITRepositoryTestSuite) TestUsecaseAddDocument() {
 	var document *models.DocumentMetaData
-	userRepo := document_repo_adapter.NewDocumentRepositoryAdapter(suite.db)
-	id := uuid.UUID{2}
-	insertedDocument := models.DocumentMetaData{ID: id, DocumentData: createPDFBuffer(TEST_VALID_PDF)}
-	err := userRepo.AddDocument(&insertedDocument)
+
+	documentMetaRepo := document_metadata_repo_adapter.NewDocumentRepositoryAdapter(suite.db)
+	documentRepo := document_data_repo_adapter.NewDocumentRepositoryAdapter("", ".temp", suite.fs)
+	reportRepo := report_creator.NewPDFReportCreator()
+	documentMetaMother := unit_test_utils.NewDocumentMetaDataBuilder()
+	documentMother := unit_test_utils.NewMotherDocumentData().DefaultDocumentData()
+
+	documentService := service.NewDocumentService()
+	documentMeta := documentMetaMother.WithCreatorID(1).WithPageCount(1)
+	insertedDocument := models.DocumentMetaData{}
+
+	err := documentMetaRepo.AddDocument(documentMeta, document)
 	suite.Require().NoError(err)
-	document, err = userRepo.GetDocumentByID(id)
+
+	document, err = documentMetaRepo.GetDocumentByID(id)
 	suite.Require().NoError(err)
 	suite.Assert().Equal(document.DocumentData, insertedDocument.DocumentData)
 	suite.Assert().Equal(document.ID, id)
-
 }
 
-func (suite *UsecaseRepositoryTestSuite) TestUsecaseLoadDocument() {
+func (suite *ITRepositoryTestSuite) TestUsecaseLoadDocument() {
 	var document *models.DocumentMetaData
 	userRepo := document_repo_adapter.NewDocumentRepositoryAdapter(suite.db)
+
 	handler := mock_nn_model_handler.NewMockIModelHandler(&gomock.Controller{})
 	nn := nn_adapter.NewDetectionModel(handler)
 	service := service.NewDocumentService(userRepo, nn)
-	id := uuid.UUID{2}
+
+	id := uuid.New() // Generate a new UUID
 	insertedDocument := models.DocumentMetaData{ID: id, DocumentData: createPDFBuffer(TEST_VALID_PDF)}
+
 	err := service.LoadDocument(insertedDocument)
 	suite.Assert().NoError(err)
+
 	document, err = userRepo.GetDocumentByID(id)
 	suite.Require().NoError(err)
 	suite.Assert().Equal(document.DocumentData, insertedDocument.DocumentData)
 	suite.Assert().Equal(document.ID, id)
 }
 
-func (suite *UsecaseRepositoryTestSuite) TestUsecaseCheckDocument() {
-
-	userRepo := document_repo_adapter.NewDocumentRepositoryAdapter(suite.db)
-	ctrl := gomock.NewController(suite.T())
-	handler := mock_nn_model_handler.NewMockIModelHandler(ctrl)
-	nn := nn_adapter.NewDetectionModel(handler)
-	service := service.NewDocumentService(userRepo, nn)
-	id := uuid.UUID{2}
-	insertedDocument := models.DocumentMetaData{ID: id, DocumentData: createPDFBuffer(TEST_VALID_PDF)}
-	marups := []models_dto.Markup{
-		{ErrorBB: []float32{0.1, 0.2, 0.3, 0.2}, ClassLabel: 1},
-		{ErrorBB: []float32{0.3, 0.2, 0.1, 0.3}, ClassLabel: 2},
-	}
-	req := nn_model_handler.ModelRequest{DocumentData: insertedDocument.DocumentData}
-	handler.EXPECT().GetModelResp(req).Return(marups, nil)
-	res, err := service.CheckDocument(insertedDocument)
-	suite.Assert().NoError(err)
-	suite.Assert().Equal(res, models_dto.FromDtoMarkupSlice(marups))
-
-}
-
-func (suite *UsecaseRepositoryTestSuite) TestUsecaseCheckDocument() {
-
-	userRepo := document_repo_adapter.NewDocumentRepositoryAdapter(suite.db)
-	ctrl := gomock.NewController(suite.T())
-	handler := mock_nn_model_handler.NewMockIModelHandler(ctrl)
-	nn := nn_adapter.NewDetectionModel(handler)
-	service := service.NewDocumentService(userRepo, nn)
-	id := uint64(2)
-	insertedDocument := models.Document{ID: id, DocumentData: createPDFBuffer(TEST_VALID_PDF)}
-	marups := []models_dto.Markup{
-		{ErrorBB: []float32{0.1, 0.2, 0.3, 0.2}, ClassLabel: 1},
-		{ErrorBB: []float32{0.3, 0.2, 0.1, 0.3}, ClassLabel: 2},
-	}
-	req := nn_model_handler.ModelRequest{DocumentData: insertedDocument.DocumentData}
-	handler.EXPECT().GetModelResp(req).Return(marups, nil)
-	res, err := service.CheckDocument(insertedDocument)
-	suite.Assert().NoError(err)
-	suite.Assert().Equal(res, models_dto.FromDtoMarkupSlice(marups))
-
-}
-
-func (suite *UsecaseRepositoryTestSuite) TestUsecaseDeleteDocumentID() {
+func (suite *ITRepositoryTestSuite) TestUsecaseDeleteDocumentID() {
 	document := models.DocumentMetaData{}
 	userRepo := document_repo_adapter.NewDocumentRepositoryAdapter(suite.db)
-	id := uuid.UUID{2}
+
+	id := uuid.New() // Generate a new UUID
 	insertedDocument := models.DocumentMetaData{ID: id, DocumentData: createPDFBuffer(TEST_VALID_PDF)}
+
 	err := userRepo.AddDocument(&insertedDocument)
 	suite.Require().NoError(err)
+
 	suite.Assert().NoError(suite.db.Table("documents").First(&document, models.DocumentMetaData{ID: id}).Error)
 	err = userRepo.DeleteDocumentByID(id)
 	suite.Require().NoError(err)
-	suite.Assert().Error(suite.db.Table("documents").First(&document, models.DocumentMetaData{ID: id}).Error)
 
+	suite.Assert().Error(suite.db.Table("documents").First(&document, models.DocumentMetaData{ID: id}).Error)
 }
 
 func TestSuite(t *testing.T) {
-	suite.Run(t, new(UsecaseRepositoryTestSuite))
+	suite.Run(t, new(ITRepositoryTestSuite))
 }
