@@ -19,7 +19,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/spf13/afero"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -68,7 +67,7 @@ func (suite *ITRepositoryTestSuite) SetupTest() {
 
 	suite.db = db
 	suite.pgContainer = pgContainer
-	suite.fs = afero.NewOsFs()
+	//suite.fs = afero.NewOsFs()
 }
 
 func (suite *ITRepositoryTestSuite) TearDownTest() {
