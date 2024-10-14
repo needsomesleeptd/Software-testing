@@ -53,5 +53,11 @@ jobs:
       run: golint ./...
     - name: Run tests
       run: go test -race -vet=off ./internal/tests/...
+    - name: Install allure
+      run: |
+          sudo apt-get update
+          sudo apt-get install default-jre
+          wget https://github.com/allure-framework/allure2/releases/download/2.18.1/allure_2.18.1-1_all.deb
+          sudo dpkg -i allure_2.18.1-1_all.deb
     - name: Create  report
       run: make report -C ./internal/tests/
