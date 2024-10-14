@@ -8,6 +8,7 @@ test:
 
 # Создание allure отчета по результатам теста
 allure:
+	mkdir -p allure-reports/history
 	cp -R allure-reports/history allure-results
 	rm -rf allure-reports
 	allure generate allure-results -o allure-reports
