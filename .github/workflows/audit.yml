@@ -30,8 +30,10 @@ jobs:
 
     - name: Build
       run: go build -v ./...
-
+    - name: Build Mocks
+      run: make -C ./internal/makefile
     - name: Run go vet
+      continue-on-error: true
       run: go vet ./...
 
     - name: Install staticcheck

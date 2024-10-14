@@ -49,7 +49,7 @@ func (s *DocumentRepoSuite) TestReportDataRepositoryAdapter(t provider.T) {
 				fullPath := fmt.Sprintf("%s/%s", unit_test_utils.TEST_DEFAULT_ROOT, unit_test_utils.TEST_DEFAULT_ROOT) + unit_test_utils.TEST_DEFAULT_EXT
 				filepath := fmt.Sprintf("%s/%s", unit_test_utils.TEST_DEFAULT_ROOT, report.DocumentID) + unit_test_utils.TEST_DEFAULT_EXT
 				mockFS.EXPECT().Stat(fullPath).Return(nil, os.ErrNotExist)
-				mockFS.EXPECT().IsNotExist(os.ErrNotExist).Return(true)
+
 				mockFS.EXPECT().MkdirAll(fullPath, os.FileMode(0755)).Return(nil) // Ensure MkdirAll is expected
 				mockFS.EXPECT().WriteFile(filepath, report.ReportData, os.FileMode(0644)).Return(nil)
 			},
@@ -61,7 +61,7 @@ func (s *DocumentRepoSuite) TestReportDataRepositoryAdapter(t provider.T) {
 			expectedErr: errors.Wrap(errors.New("write error"), "error in saving document data"),
 			prepareMock: func() {
 				mockFS.EXPECT().Stat(gomock.Any()).Return(nil, os.ErrNotExist)
-				mockFS.EXPECT().IsNotExist(gomock.Any()).Return(true)
+
 				mockFS.EXPECT().MkdirAll(gomock.Any(), os.FileMode(0755)).Return(nil) // Ensure MkdirAll is expected
 				mockFS.EXPECT().WriteFile(gomock.Any(), gomock.Any(), os.FileMode(0644)).Return(errors.New("write error"))
 			},

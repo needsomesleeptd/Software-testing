@@ -174,7 +174,6 @@ func (s *DocumentServiceSuite) TestDocumentService_LoadDocument_Classic(t provid
 				fullPath := fmt.Sprintf("%s/%s", unit_test_utils.TEST_DEFAULT_ROOT, unit_test_utils.TEST_DEFAULT_ROOT) + unit_test_utils.TEST_DEFAULT_EXT
 				filepath := fmt.Sprintf("%s/%s", unit_test_utils.TEST_DEFAULT_ROOT, document.ID) + unit_test_utils.TEST_DEFAULT_EXT
 				f.fs.EXPECT().Stat(fullPath).Return(nil, os.ErrNotExist)
-				f.fs.EXPECT().IsNotExist(os.ErrNotExist).Return(true)
 				f.fs.EXPECT().MkdirAll(fullPath, os.FileMode(0755)).Return(nil) // Ensure MkdirAll is expected
 				f.fs.EXPECT().WriteFile(filepath, document.DocumentBytes, os.FileMode(0644)).Return(nil)
 
@@ -200,7 +199,6 @@ func (s *DocumentServiceSuite) TestDocumentService_LoadDocument_Classic(t provid
 
 				// save the report
 				f.fs.EXPECT().Stat(fullPath).Return(nil, os.ErrNotExist)
-				f.fs.EXPECT().IsNotExist(os.ErrNotExist).Return(true)
 				f.fs.EXPECT().MkdirAll(fullPath, os.FileMode(0755)).Return(nil) // Ensure MkdirAll is expected
 				f.fs.EXPECT().WriteFile(filepath, report.ReportData, os.FileMode(0644)).Return(nil)
 			},

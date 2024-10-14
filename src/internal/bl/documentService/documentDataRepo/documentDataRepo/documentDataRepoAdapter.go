@@ -35,7 +35,7 @@ func (repo *DocumentDataRepositoryAdapter) Exists(path string) bool {
 	fullPath := fmt.Sprintf("%s/%s", repo.root, path) + repo.fileExtension
 	_, err := repo.fs.Stat(fullPath)
 
-	return !errors.Is(err, fs.ErrExist)
+	return !errors.Is(err, fs.ErrNotExist)
 }
 
 func (repo *DocumentDataRepositoryAdapter) AddDocument(doc *models.DocumentData) error {
