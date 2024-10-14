@@ -31,7 +31,7 @@ jobs:
     - name: Build
       run: go build -v ./...
     - name: Build Mocks
-      run: make -C ./internal/makefile
+      run: make -C ./internal
     - name: Run go vet
       continue-on-error: true
       run: go vet ./...
@@ -51,3 +51,5 @@ jobs:
       run: golint ./...
     - name: Run tests
       run: go test -race -vet=off ./...
+    - name: Create  report
+      run: make report -C ./internal/tests/
