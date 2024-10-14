@@ -5,6 +5,7 @@ import (
 	filesystem "annotater/internal/bl/documentService/reportDataRepo/reportDataRepoAdapter/filesytem"
 	"annotater/internal/models"
 	"fmt"
+	"io/fs"
 	"os"
 
 	"github.com/google/uuid"
@@ -34,7 +35,7 @@ func (repo *DocumentDataRepositoryAdapter) Exists(path string) bool {
 	fullPath := fmt.Sprintf("%s/%s", repo.root, path) + repo.fileExtension
 	_, err := repo.fs.Stat(fullPath)
 
-	return !repo.fs.IsNotExist(err)
+	return !errors.Is(err, fs.ErrExist)
 }
 
 func (repo *DocumentDataRepositoryAdapter) AddDocument(doc *models.DocumentData) error {

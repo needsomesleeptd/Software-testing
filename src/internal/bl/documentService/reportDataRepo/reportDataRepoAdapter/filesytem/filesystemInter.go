@@ -12,7 +12,6 @@ type IFileSystem interface {
 	WriteFile(filename string, data []byte, perm os.FileMode) error
 	ReadFile(filename string) ([]byte, error)
 	Remove(name string) error
-	IsNotExist(err error) bool
 }
 
 type OSFileSystem struct{}
@@ -20,10 +19,6 @@ type OSFileSystem struct{}
 // Implement the methods on OSFileSystem to conform to FileSystem interface.
 func (OSFileSystem) MkdirAll(path string, perm os.FileMode) error {
 	return os.MkdirAll(path, perm)
-}
-
-func (OSFileSystem) IsNotExist(err error) bool {
-	return os.IsNotExist(err)
 }
 
 func (OSFileSystem) Stat(name string) (os.FileInfo, error) {
