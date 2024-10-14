@@ -1,6 +1,7 @@
 # Запуск всех unit тестов проекта
 test:
 	rm -rf allure-results
+	mkdir -p allure-results
 	export ALLURE_OUTPUT_PATH="/home/andrew/uni/testing/Software-testing/src/internal/tests" && go test ./... --race --parallel 11; \
 	if [ $$? -ne 0 ]; then \
 		echo "Tests failed"; \
