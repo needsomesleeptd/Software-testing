@@ -30,6 +30,8 @@ jobs:
 
     - name: Build
       run: go build -v ./...
+    - name: Install mockgen
+      run: go install github.com/golang/mock/mockgen@latest
     - name: Build Mocks
       run: make -C ./internal
     - name: Run go vet
