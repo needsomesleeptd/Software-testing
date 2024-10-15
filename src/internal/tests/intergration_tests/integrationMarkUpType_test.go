@@ -1,3 +1,5 @@
+//go:build inegration
+
 package integration_tests
 
 import (
@@ -24,6 +26,7 @@ type MarkupTypeTestSuite struct {
 }
 
 func (suite *MarkupTypeTestSuite) SetupTest() {
+	fmt.Printf("%p", suite)
 	ctx := context.Background()
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:latest",

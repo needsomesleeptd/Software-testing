@@ -18,4 +18,50 @@ allure:
 # Запуск всех unit тестов проекта с последующим созданием allure отчета
 report: test allure
 
+
+ci-unit:
+	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
+ 	export ALLURE_OUTPUT_FOLDER="unit-allure" && \ 
+ 	go test -tags=unit ./... --race
+
+local-unit:
+	export ALLURE_OUTPUT_PATH="/Users/stepa/Study/Testing" && \
+ 	export DB_INIT_PATH="/Users/stepa/Study/Testing/sql/init/init.sql" && \
+ 	go test -tags=unit ./... --race
+
+ci-integration:
+	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
+	export ALLURE_OUTPUT_FOLDER="integration-allure" && \
+ 	export DB_INIT_PATH="/home/runner/work/Testing/Testing/sql/init/init.sql" && \
+	go test -tags=integration ./... --race
+
+local-integration:
+	export ALLURE_OUTPUT_PATH="/Users/stepa/Study/Testing" && \
+ 	export DB_INIT_PATH="/Users/stepa/Study/Testing/sql/init/init.sql" && \
+	go test -tags=integration ./... --race
+
+ci-e2e:
+	docker compose up -d
+	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
+	export ALLURE_OUTPUT_FOLDER="e2e-allure" && \
+	go test -tags=e2e ./... --race
+	docker compose down
+	docker image rm testing-backend:latest bitnami/postgresql:16 alpine:latest
+
+local-e2e:
+	docker compose up -d
+	export ALLURE_OUTPUT_PATH="/Users/stepa/Study/Testing" && \
+	go test -tags=e2e ./... --race
+
+rm-compose:
+	docker compose down
+	docker image rm testing-backend:latest
+
+ci-concat-reports:
+	mkdir allure-results
+	cp unit-allure/* allure-results/
+	cp integration-allure/* allure-results/
+	cp e2e-allure/* allure-results/
+	cp environment.properties allure-results
+
 .PHONY: test allure report

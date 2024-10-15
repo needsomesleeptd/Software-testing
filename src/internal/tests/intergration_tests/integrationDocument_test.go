@@ -1,3 +1,5 @@
+//go:build inegration
+
 package integration_tests
 
 /*
