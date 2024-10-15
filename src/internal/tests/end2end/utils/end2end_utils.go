@@ -1,4 +1,4 @@
-package main
+package end2end_utils
 
 import (
 	nn_adapter "annotater/internal/bl/NN/NNAdapter"
@@ -23,7 +23,6 @@ import (
 	auth_handler "annotater/internal/http-server/handlers/auth"
 	document_handler "annotater/internal/http-server/handlers/document"
 	user_handler "annotater/internal/http-server/handlers/user"
-	logger_setup "annotater/internal/logger"
 	"annotater/internal/middleware/access_middleware"
 	"annotater/internal/middleware/auth_middleware"
 	models_da "annotater/internal/models/modelsDA"
@@ -32,58 +31,21 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
+	logger_setup "annotater/internal/logger"
+
 	"github.com/go-chi/chi/v5"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-// andrew1 2
-// admin admin
-// control control
+func RunTheApp(db *gorm.DB, done chan os.Signal, configPath string, wg *sync.WaitGroup) {
 
-func migrate(db *gorm.DB) error {
-	err := db.AutoMigrate(&models_da.Document{})
-	if err != nil {
-		return err
-	}
-	err = db.AutoMigrate(&models_da.User{})
-	if err != nil {
-		return err
-	}
-	err = db.AutoMigrate(&models_da.MarkupType{})
-	if err != nil {
-		return err
-	}
-	err = db.AutoMigrate(&models_da.Markup{})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func main() {
-
-	config := config.MustLoad("")
-	postgresConStr := config.Database.GetGormConnectStr()
-	db, err := gorm.Open(postgres.New(postgres.Config{DSN: postgresConStr}),
-		&gorm.Config{TranslateError: true,
-			Logger: logger.Default.LogMode(logger.Silent)})
+	config := config.MustLoad("configPath")
+	//log := unit_test_utils.MockLogger
 
 	log := logger_setup.Setuplog(config)
-
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
-	err = migrate(db)
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
-
 	//auth service
 	userRepo := user_repo_adapter.NewUserRepositoryAdapter(db)
 	hasher := auth_utils.NewPasswordHashCrypto()
@@ -187,7 +149,6 @@ func main() {
 	router.Post("/user/SignUp", authHandler.SignUp())
 	router.Post("/user/SignIn", authHandler.SignIn())
 
-	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	srv := &http.Server{
@@ -203,6 +164,27 @@ func main() {
 			fmt.Println("error with server")
 		}
 	}()
-
+	wg.Done()
 	<-done
+	fmt.Println("shutting down server")
+}
+
+func TablesMigrate(db *gorm.DB) error {
+	err := db.AutoMigrate(&models_da.Document{})
+	if err != nil {
+		return err
+	}
+	err = db.AutoMigrate(&models_da.User{})
+	if err != nil {
+		return err
+	}
+	err = db.AutoMigrate(&models_da.MarkupType{})
+	if err != nil {
+		return err
+	}
+	err = db.AutoMigrate(&models_da.Markup{})
+	if err != nil {
+		return err
+	}
+	return nil
 }

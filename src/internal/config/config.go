@@ -61,9 +61,16 @@ func (db *Database) GetGormConnectStr() string {
 	return fmt.Sprintf("host=%s user=%s password=%s database=%s port=%s", db.Host, db.User, db.Password, db.Database, db.Port)
 }
 
-func MustLoad() *Config {
+func (db *Database) GetPostgresConnStr() string {
+	return fmt.Sprintf("postgresql://%s:%s@%s:5432/%s?sslmode=disable", db.User, db.Password, db.Host, db.Database)
+}
+
+func MustLoad(confPath string) *Config {
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
+		configPath = confPath
+	}
+	if configPath == "" && confPath == "" {
 		log.Fatal("CONFIG_PATH is not set")
 	}
 

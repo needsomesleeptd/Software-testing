@@ -60,7 +60,7 @@ func (serv *ReportCreatorService) NNMarkupsReq(document models.DocumentData) ([]
 	}
 	serv.logger.Infof("report creator svc - successfully got markups for document with id %v", document.ID)
 	markupTypes, err := serv.annotTypeRepo.GetAnottationTypesByIDs(ids)
-	if err != nil {
+	if err != nil && !errors.Is(err, models.ErrNotFound) {
 		serv.logger.Warnf("report creator svc - failed to get markups for document with id %v", document.ID)
 		return nil, nil, errors.Wrap(err, CHECKING_DOCUMENT_ERR_STR)
 	}
@@ -72,7 +72,7 @@ func (serv *ReportCreatorService) CreateReport(document models.DocumentData) (*m
 
 	var report *models.ErrorReport
 	markups, markupTypes, err := serv.NNMarkupsReq(document)
-	if err != nil {
+	if err != nil && !errors.Is(err, models.ErrNotFound) {
 		serv.logger.Warnf("report creator svc - err in getting markups from NN : %v", err)
 		return nil, errors.Wrap(err, REPORT_ERR_STR)
 	}
