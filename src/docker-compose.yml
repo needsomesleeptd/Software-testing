@@ -1,5 +1,26 @@
 version: "3.9"
 services:
+
+
+
+
+  anotatter:
+    build:
+      context: ./
+    ports:
+      - "8080:8080"
+    container_name: anotatter
+    depends_on:
+      - postgres
+  
+  python-flask-app:
+    build:
+      context: ./neural_network
+    ports:
+      - "5000:5000"
+    container_name: python-flask-app
+
+
   postgres:
     container_name: my_bd
     image: postgres:13.3

@@ -33,7 +33,7 @@ ci-integration:
 ci-e2e:
 	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
 	export ALLURE_OUTPUT_FOLDER="e2e-allure" && \
-	export CONFIG_PATH="./config/local.yaml" && \
+	export CONFIG_PATH="../../config/local.yaml" && \
 	go test -tags=e2e ./end2end --race
 	
 ci-concat-reports:
@@ -41,6 +41,5 @@ ci-concat-reports:
 	cp unit-allure/* allure-results/
 	cp integration-allure/* allure-results/
 	cp e2e-allure/* allure-results/
-	cp environment.properties allure-results
 
 .PHONY: test allure report
