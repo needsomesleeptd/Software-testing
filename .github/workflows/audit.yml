@@ -64,7 +64,7 @@ jobs:
       run: make ci-e2e -i -C ./internal/tests
 
     - name: Processing report data
-      run: make ci-concat-reports -i
+      run: make ci-concat-reports -i  -C ./internal/tests
       if: always()
       continue-on-error: true
 

@@ -1,4 +1,4 @@
-//go:build inegration
+//go:build integration
 
 package integration_tests
 

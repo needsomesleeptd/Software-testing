@@ -27,12 +27,13 @@ ci-unit:
 ci-integration:
 	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
 	export ALLURE_OUTPUT_FOLDER="integration-allure" && \
-	go test -tags=integration ./integration_tests --race
+	go test -tags=integration ./intergration_tests --race
 
 
 ci-e2e:
 	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
 	export ALLURE_OUTPUT_FOLDER="e2e-allure" && \
+	export CONFIG_PATH="./config/local.yaml" && \
 	go test -tags=e2e ./end2end --race
 	
 ci-concat-reports:
