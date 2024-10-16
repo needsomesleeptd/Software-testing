@@ -21,18 +21,18 @@ report: test allure
 
 ci-unit:
 	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
- 	export ALLURE_OUTPUT_FOLDER="unit-allure" && \ 
+ 	export ALLURE_OUTPUT_FOLDER="./unit-allure" && \ 
 	go test -tags=unit ./unit --race
 
 ci-integration:
 	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
-	export ALLURE_OUTPUT_FOLDER="integration-allure" && \
+	export ALLURE_OUTPUT_FOLDER="./integration-allure" && \
 	go test -tags=integration ./intergration_tests --race
 
 
 ci-e2e:
 	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
-	export ALLURE_OUTPUT_FOLDER="e2e-allure" && \
+	export ALLURE_OUTPUT_FOLDER="./e2e-allure" && \
 	export CONFIG_PATH="../../config/local.yaml" && \
 	go test -tags=e2e ./end2end --race
 	
