@@ -37,6 +37,7 @@ ci-e2e:
 	go test -tags=e2e ./end2end --race
 	
 ci-concat-reports:
+	ls -la 
 	mkdir allure-results
 	cp unit-allure/* allure-results/
 	cp integration-allure/* allure-results/
