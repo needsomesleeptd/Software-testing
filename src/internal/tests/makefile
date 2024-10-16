@@ -20,20 +20,20 @@ report: test allure
 
 
 ci-unit:
-	export ALLURE_OUTPUT_PATH="../${GITHUB_WORKSPACE}" && \
+	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
  	export ALLURE_OUTPUT_FOLDER="unit-allure" && \ 
-	go test -tags=unit ./integral/tests/unit --race
+	go test -tags=unit ./src/integral/tests/unit --race
 
 ci-integration:
-	export ALLURE_OUTPUT_PATH="../${GITHUB_WORKSPACE}" && \
+	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
 	export ALLURE_OUTPUT_FOLDER="integration-allure" && \
-	go test -tags=integration ./integral/tests/integration_tests --race
+	go test -tags=integration ./src/integral/tests/integration_tests --race
 
 
 ci-e2e:
-	export ALLURE_OUTPUT_PATH="../${GITHUB_WORKSPACE}" && \
+	export ALLURE_OUTPUT_PATH="${GITHUB_WORKSPACE}" && \
 	export ALLURE_OUTPUT_FOLDER="e2e-allure" && \
-	go test -tags=e2e ./integral/tests/end2end --race
+	go test -tags=e2e ./src/integral/tests/end2end --race
 	
 ci-concat-reports:
 	mkdir allure-results
