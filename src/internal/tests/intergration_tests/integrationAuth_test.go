@@ -94,14 +94,13 @@ func (suite *ITAuthTestSuite) TestUsecaseSignUp(t provider.T) {
 	t.Require().NoError(hasher.ComparePasswordhash(user.Password, gotUser.Password))
 
 	var gotUserDa *models_da.User
-	// Ensure ID is valid; is it meant to be the user's ID?
-	var id uint64 = gotUser.ID // Using the ID from the created user
+	var id uint64 = gotUser.ID
 	t.Require().NoError(suite.db.Model(&models_da.User{}).Where("id = ?", id).Take(&gotUserDa).Error)
 	t.Assert().Equal(*gotUser, models_da.FromDaUser(gotUserDa))
 }
 
 func (suite *ITAuthTestSuite) TestUsecaseSignIn(t provider.T) {
-	// Ensure suite.db is not nil before proceeding
+
 	t.Require().NotNil(suite.db)
 
 	userRepo := user_repo_adapter.NewUserRepositoryAdapter(suite.db)
