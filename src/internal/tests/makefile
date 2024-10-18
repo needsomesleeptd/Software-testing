@@ -34,7 +34,7 @@ ci-e2e:
 	export ALLURE_OUTPUT_PATH="../" && \
 	export ALLURE_OUTPUT_FOLDER="./e2e-allure" && \
 	export CONFIG_PATH="${GITHUB_WORKSPACE}/src/config/local.yaml" && \
-	go test -tags=e2e ./end2end --race
+	go test -tags=e2e ./end2end./... --race
 	
 ci-concat-reports:
 	ls -la 
