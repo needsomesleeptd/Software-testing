@@ -20,28 +20,28 @@ report: test allure
 
 
 ci-unit:
-	export ALLURE_OUTPUT_PATH="./" && \
- 	export ALLURE_OUTPUT_FOLDER="./unit-allure" && \ 
+	export ALLURE_OUTPUT_PATH="../" && \
+ 	export ALLURE_OUTPUT_FOLDER="unit-allure" && \ 
 	go test -tags=unit ./unit --race
 
 ci-integration:
-	export ALLURE_OUTPUT_PATH="./" && \
+	export ALLURE_OUTPUT_PATH="../" && \
 	export ALLURE_OUTPUT_FOLDER="./integration-allure" && \
 	go test -tags=integration ./intergration_tests --race
 
 
 ci-e2e:
-	export ALLURE_OUTPUT_PATH="./" && \
+	export ALLURE_OUTPUT_PATH="../" && \
 	export ALLURE_OUTPUT_FOLDER="./e2e-allure" && \
-	export CONFIG_PATH="${GITHUB_WORKSPACE}/config/local.yaml" && \
+	export CONFIG_PATH="${GITHUB_WORKSPACE}/src/config/local.yaml" && \
 	go test -tags=e2e ./end2end --race
 	
 ci-concat-reports:
 	ls -la 
 	ls -la ./unit-allure
 	mkdir allure-results
-	cp unit-allure/* allure-results/
-	cp integration-allure/* allure-results/
-	cp e2e-allure/* allure-results/
+	cp unit/allure-results/* allure-results/
+	cp integration_tests/allure-results/* allure-results/
+	cp end2end/allure-results/* allure-results/
 
-.PHONY: test allure report
+.PHONY: test allure report ci-unit
