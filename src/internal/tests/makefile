@@ -38,7 +38,7 @@ ci-e2e:
 	
 ci-concat-reports:
 	ls -la 
-	ls -la ./unit-allure
+	ls -la ./unit
 	mkdir allure-results
 	cp unit/allure-results/* allure-results/
 	cp integration_tests/allure-results/* allure-results/
