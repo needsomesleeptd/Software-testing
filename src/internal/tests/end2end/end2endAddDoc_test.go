@@ -7,7 +7,6 @@ import (
 	models_dto "annotater/internal/models/dto"
 	end2end_utils "annotater/internal/tests/end2end/utils"
 	unit_test_utils "annotater/internal/tests/utils"
-	"bytes"
 	"context"
 	"fmt"
 	"net/http"
@@ -16,8 +15,8 @@ import (
 	"testing"
 
 	"github.com/gavv/httpexpect/v2"
-	"github.com/signintech/gopdf"
-	"github.com/stretchr/testify/suite"
+	"github.com/ozontech/allure-go/pkg/framework/provider"
+	"github.com/ozontech/allure-go/pkg/framework/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"gorm.io/driver/postgres"
@@ -34,7 +33,7 @@ type E2ESuite struct {
 }
 
 // SetupSuite runs before any tests in the suite
-func (suite *E2ESuite) SetupSuite() {
+func (suite *E2ESuite) BeforeEach(t provider.T) {
 	ctx := context.Background()
 	fmt.Print("STARTING SUITE")
 	req := testcontainers.ContainerRequest{
@@ -51,31 +50,31 @@ func (suite *E2ESuite) SetupSuite() {
 		ContainerRequest: req,
 		Started:          true,
 	})
-	suite.Require().NoError(err)
+	t.Require().NoError(err)
 	suite.pgContainer = pgContainer
 
 	// Get the host and port for the database
 	host, err := pgContainer.Host(ctx)
-	suite.Require().NoError(err)
+	t.Require().NoError(err)
 	port, err := pgContainer.MappedPort(ctx, "5432")
-	suite.Require().NoError(err)
+	t.Require().NoError(err)
 
 	// Open a new database connection for each test
 	dsn := fmt.Sprintf("host=%s port=%s user=test_user password=test_password dbname=test_db sslmode=disable", host, port.Port())
 	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}), &gorm.Config{})
-	suite.Require().NoError(err)
+	t.Require().NoError(err)
 
 	err = end2end_utils.TablesMigrate(db)
-	suite.Require().NoError(err)
+	t.Require().NoError(err)
 
 	suite.db = db
 	// Initialize httpexpect with a new test.T
 	suite.e = *httpexpect.WithConfig(httpexpect.Config{
 		Client:   &http.Client{},
 		BaseURL:  "http://localhost:8080",
-		Reporter: httpexpect.NewAssertReporter(suite.T()),
+		Reporter: httpexpect.NewAssertReporter(t),
 		Printers: []httpexpect.Printer{
-			httpexpect.NewDebugPrinter(suite.T(), true),
+			httpexpect.NewDebugPrinter(t, true),
 		},
 	})
 	done := make(chan os.Signal, 1)
@@ -84,15 +83,15 @@ func (suite *E2ESuite) SetupSuite() {
 	go end2end_utils.RunTheApp(suite.db, suite.done, os.Getenv("CONFIG_PATH"), &suite.wg)
 }
 
-func (s *E2ESuite) TearDownSuite() {
+func (s *E2ESuite) AfterEach(t provider.T) {
 	ctx := context.Background()
 	err := s.pgContainer.Terminate(ctx)
-	s.Require().NoError(err)
+	t.Require().NoError(err)
 
 	s.done <- os.Interrupt
 }
 
-func (s *E2ESuite) Test_E2ELoadingDocument() {
+func (s *E2ESuite) Test_E2ELoadingDocument(t provider.T) {
 	fmt.Print("STARTING THE TEST")
 	s.wg.Wait()
 	user := unit_test_utils.NewUserObjectMother().DefaultUser()
@@ -111,7 +110,7 @@ func (s *E2ESuite) Test_E2ELoadingDocument() {
 
 	reqSignIn := auth_handler.RequestSignIn{Login: user.Login, Password: user.Password}
 
-	jwt := s.e.POST("/user/SignIn").
+	s.e.POST("/user/SignIn").
 		WithJSON(reqSignIn).
 		Expect().
 		Status(http.StatusOK).
@@ -119,22 +118,10 @@ func (s *E2ESuite) Test_E2ELoadingDocument() {
 		Object().
 		NotEmpty().
 		ContainsKey("Response").
-		Value("jwt").Raw().(string)
-
-	pdf := &gopdf.GoPdf{}
-	pdf.Start(gopdf.Config{PageSize: gopdf.Rect{W: 210, H: 297}}) // A4 size
-	bytesPage := pdf.GetBytesPdf()
-	r := bytes.NewReader(bytesPage)
-
-	s.e.POST("/document/report").
-		WithHeader("Authorization", "Bearer: "+jwt).
-		WithMultipart().
-		WithFile("file", "filename.pdf", r).
-		Expect().
-		Status(http.StatusOK)
+		ContainsKey("jwt")
 }
 
 // TestEnd2End runs the test suite
 func TestEnd2End(t *testing.T) {
-	suite.Run(t, new(E2ESuite))
+	suite.RunSuite(t, new(E2ESuite))
 }

@@ -11,7 +11,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
+	"github.com/ozontech/allure-go/pkg/framework/provider"
+	"github.com/ozontech/allure-go/pkg/framework/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"gorm.io/driver/postgres"
@@ -24,9 +25,9 @@ type MarkupTestSuite struct {
 	pgContainer testcontainers.Container
 }
 
-func (suite *MarkupTestSuite) SetupTest() {
+func (suite *MarkupTestSuite) BeforeEach(t provider.T) {
 	ctx := context.Background()
-	fmt.Print(suite)
+
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:latest",
 		ExposedPorts: []string{"5432/tcp"},
@@ -42,49 +43,62 @@ func (suite *MarkupTestSuite) SetupTest() {
 		ContainerRequest: req,
 		Started:          true,
 	})
-	suite.Require().NoError(err)
+
+	t.Require().NoError(err)
 	suite.pgContainer = pgContainer
 
 	host, err := pgContainer.Host(ctx)
-	suite.Require().NoError(err)
+	t.Require().NoError(err)
 
 	port, err := pgContainer.MappedPort(ctx, "5432")
-	suite.Require().NoError(err)
+	t.Require().NoError(err)
 
 	dsn := fmt.Sprintf("host=%s port=%s user=test_user password=test_password dbname=test_db sslmode=disable", host, port.Port())
-	db, err := gorm.Open(postgres.New(postgres.Config{
-		DSN: dsn,
-	}), &gorm.Config{})
-	suite.Require().NoError(err)
+	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}), &gorm.Config{})
+	t.Require().NoError(err)
 
-	db.AutoMigrate(&models_da.Markup{})
+	t.Require().NoError(db.AutoMigrate(&models_da.Markup{}))
 	suite.db = db
 }
 
-func (suite *MarkupTestSuite) TestUsecaseAddMarkUp() {
-	markupMother := unit_test_utils.NewMarkupBuilder()
-	markup := markupMother.WithPageData(unit_test_utils.VALID_PNG_BUFFER).
-		WithCreatorID(1).
-		WithEID(unit_test_utils.TEST_BASIC_ID).
-		WithErrorBB(unit_test_utils.VALID_BBS_PARAMS).
-		Build()
+func (suite *MarkupTestSuite) TearDownTest(t provider.T) {
+	// Optionally, you can log cleanup steps to Allure
+	t.Log("Cleaning up test environment...")
 
-	anotattionRepo := annot_repo_adapter.NewAnotattionRepositoryAdapter(suite.db)
-	anotattionService := annot_service.NewAnnotattionService(unit_test_utils.MockLogger, anotattionRepo)
+	suite.db.Migrator().DropTable(&models_da.Markup{})
 
-	gotMarkUp := models_da.Markup{ID: markup.ID}
-	suite.Require().Error(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
-
-	err := anotattionService.AddAnottation(markup)
-	suite.Require().NoError(err)
-
-	suite.Assert().NoError(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
-	markUpNew, err := models_da.FromDaMarkup(&gotMarkUp)
-	suite.Require().NoError(err)
-	suite.Assert().Equal(markUpNew, *markup)
+	ctx := context.Background()
+	err := suite.pgContainer.Terminate(ctx)
+	t.Require().NoError(err)
 }
 
-func (suite *MarkupTestSuite) TestUsecaseDeleteMarkUp() {
+func (suite *MarkupTestSuite) TestUsecaseAddMarkUp(t provider.T) {
+
+	markupMother := unit_test_utils.NewMarkupBuilder()
+	markup := markupMother.WithPageData(unit_test_utils.VALID_PNG_BUFFER).
+		WithCreatorID(1).
+		WithEID(unit_test_utils.TEST_BASIC_ID).
+		WithErrorBB(unit_test_utils.VALID_BBS_PARAMS).
+		Build()
+
+	anotattionRepo := annot_repo_adapter.NewAnotattionRepositoryAdapter(suite.db)
+	anotattionService := annot_service.NewAnnotattionService(unit_test_utils.MockLogger, anotattionRepo)
+
+	gotMarkUp := models_da.Markup{ID: markup.ID}
+	t.Require().Error(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
+
+	err := anotattionService.AddAnottation(markup)
+	t.Require().NoError(err)
+
+	t.Assert().NoError(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
+	markUpNew, err := models_da.FromDaMarkup(&gotMarkUp)
+	t.Require().NoError(err)
+	t.Assert().Equal(markUpNew, *markup)
+
+}
+
+func (suite *MarkupTestSuite) TestUsecaseDeleteMarkUp(t provider.T) {
+
 	markupMother := unit_test_utils.NewMarkupBuilder()
 	markup := markupMother.WithPageData(unit_test_utils.VALID_PNG_BUFFER).
 		WithCreatorID(1).
@@ -96,17 +110,20 @@ func (suite *MarkupTestSuite) TestUsecaseDeleteMarkUp() {
 	anotattionService := annot_service.NewAnnotattionService(unit_test_utils.MockLogger, anotattionRepo)
 
 	err := anotattionService.AddAnottation(markup)
-	suite.Require().NoError(err)
+	t.Require().NoError(err)
 
 	gotMarkUp := models_da.Markup{ID: markup.ID}
-	suite.Require().NoError(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
+	t.Require().NoError(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
 
 	err = anotattionService.DeleteAnotattion(markup.ID)
-	suite.Require().NoError(err)
-	suite.Require().Error(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
+	t.Require().NoError(err)
+
+	t.Require().Error(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
+
 }
 
-func (suite *MarkupTestSuite) TestUsecaseGetMarkUp() {
+func (suite *MarkupTestSuite) TestUsecaseGetMarkUp(t provider.T) {
+
 	markupMother := unit_test_utils.NewMarkupBuilder()
 	markup := markupMother.WithPageData(unit_test_utils.VALID_PNG_BUFFER).
 		WithCreatorID(1).
@@ -115,27 +132,20 @@ func (suite *MarkupTestSuite) TestUsecaseGetMarkUp() {
 		Build()
 
 	markupDa, err := models_da.ToDaMarkup(*markup)
-	suite.Require().NoError(err)
-	suite.Require().NoError(suite.db.Create(&markupDa).Error)
+	t.Require().NoError(err)
+	t.Require().NoError(suite.db.Create(&markupDa).Error)
 
 	anotattionRepo := annot_repo_adapter.NewAnotattionRepositoryAdapter(suite.db)
 	anotattionService := annot_service.NewAnnotattionService(unit_test_utils.MockLogger, anotattionRepo)
 
 	markUp, err := anotattionService.GetAnottationByID(markupDa.ID)
-	suite.Require().NoError(err)
+	t.Require().NoError(err)
 
 	markUpNew, _ := models_da.FromDaMarkup(markupDa)
-	suite.Require().Equal(*markUp, markUpNew)
-}
+	t.Require().Equal(*markUp, markUpNew)
 
-func (suite *MarkupTestSuite) TearDownTest() {
-	suite.db.Migrator().DropTable(&models_da.Markup{})
-
-	ctx := context.Background()
-	err := suite.pgContainer.Terminate(ctx)
-	suite.Require().NoError(err)
 }
 
 func TestSuiteMarkup(t *testing.T) {
-	suite.Run(t, new(MarkupTestSuite))
+	suite.RunSuite(t, new(MarkupTestSuite))
 }
