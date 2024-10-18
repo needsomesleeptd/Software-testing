@@ -33,11 +33,12 @@ ci-integration:
 ci-e2e:
 	export ALLURE_OUTPUT_PATH="./" && \
 	export ALLURE_OUTPUT_FOLDER="./e2e-allure" && \
-	export CONFIG_PATH="../../config/local.yaml" && \
+	export CONFIG_PATH="${GITHUB_WORKSPACE}/config/local.yaml" && \
 	go test -tags=e2e ./end2end --race
 	
 ci-concat-reports:
 	ls -la 
+	ls -la ./unit-allure
 	mkdir allure-results
 	cp unit-allure/* allure-results/
 	cp integration-allure/* allure-results/
