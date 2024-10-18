@@ -109,8 +109,10 @@ func (suite *MarkupTestSuite) TestUsecaseDeleteMarkUp(t provider.T) {
 	anotattionRepo := annot_repo_adapter.NewAnotattionRepositoryAdapter(suite.db)
 	anotattionService := annot_service.NewAnnotattionService(unit_test_utils.MockLogger, anotattionRepo)
 
-	err := anotattionService.AddAnottation(markup)
+	markupDa, err := models_da.ToDaMarkup(*markup)
 	t.Require().NoError(err)
+
+	t.Require().NoError(suite.db.Create(&markupDa).Error)
 
 	gotMarkUp := models_da.Markup{ID: markup.ID}
 	t.Require().NoError(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
@@ -141,7 +143,9 @@ func (suite *MarkupTestSuite) TestUsecaseGetMarkUp(t provider.T) {
 	markUp, err := anotattionService.GetAnottationByID(markupDa.ID)
 	t.Require().NoError(err)
 
-	markUpNew, _ := models_da.FromDaMarkup(markupDa)
+	markUpNew, err := models_da.FromDaMarkup(markupDa)
+	t.Require().NoError(err)
+
 	t.Require().Equal(*markUp, markUpNew)
 
 }

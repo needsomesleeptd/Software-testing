@@ -5,6 +5,7 @@ package integration_tests
 import (
 	auth_service "annotater/internal/bl/auth"
 	user_repo_adapter "annotater/internal/bl/userService/userRepo/userRepoAdapter"
+	mock_auth_utils "annotater/internal/mocks/pkg/authUtils"
 	models_da "annotater/internal/models/modelsDA"
 	auth_utils "annotater/internal/pkg/authUtils"
 	unit_test_utils "annotater/internal/tests/utils"
@@ -12,6 +13,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/ozontech/allure-go/pkg/framework/provider"
 	"github.com/ozontech/allure-go/pkg/framework/suite"
 	"github.com/testcontainers/testcontainers-go"
@@ -57,7 +59,6 @@ func (suite *ITAuthTestSuite) BeforeEach(t provider.T) {
 	// Open a new database connection for each test
 	dsn := fmt.Sprintf("host=%s port=%s user=test_user password=test_password dbname=test_db sslmode=disable", host, port.Port())
 	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}), &gorm.Config{})
-	fmt.Printf("got db %v,err %v", db, err)
 	t.Require().NoError(err)
 
 	// Automatically migrate the schema for each test, check for errors
@@ -89,34 +90,49 @@ func (suite *ITAuthTestSuite) TestUsecaseSignUp(t provider.T) {
 	err := userService.SignUp(user)
 	t.Require().NoError(err)
 
-	gotUser, err := userRepo.GetUserByLogin(user.Login)
-	t.Require().NoError(err)
-	t.Require().NoError(hasher.ComparePasswordhash(user.Password, gotUser.Password))
-
 	var gotUserDa *models_da.User
-	var id uint64 = gotUser.ID
-	t.Require().NoError(suite.db.Model(&models_da.User{}).Where("id = ?", id).Take(&gotUserDa).Error)
-	t.Assert().Equal(*gotUser, models_da.FromDaUser(gotUserDa))
+	t.Require().NoError(suite.db.Model(&models_da.User{}).Where("login = ?", user.Login).Take(&gotUserDa).Error)
+	t.Require().NoError(hasher.ComparePasswordhash(user.Password, gotUserDa.Password))
+
+	gotUser := models_da.FromDaUser(gotUserDa)
+	gotUser.Password = user.Password // i store only hashes in db
+	user.ID = gotUser.ID             // have no ID before insertion
+	t.Assert().Equal(*user, gotUser)
+
 }
 
 func (suite *ITAuthTestSuite) TestUsecaseSignIn(t provider.T) {
-
 	t.Require().NotNil(suite.db)
 
+	// Setup mock controller
+	ctr := gomock.NewController(t)
+	defer ctr.Finish() // Ensure that the controller is finished at the end of the test
+
+	// Arrange
 	userRepo := user_repo_adapter.NewUserRepositoryAdapter(suite.db)
-	hasher := auth_utils.NewPasswordHashCrypto()
+	hasher := mock_auth_utils.NewMockIPasswordHasher(ctr)
 	tokenHandler := auth_utils.NewJWTTokenHandler()
 	userService := auth_service.NewAuthService(unit_test_utils.MockLogger, userRepo, hasher, tokenHandler, unit_test_utils.TEST_HASH_KEY)
 
 	userMother := unit_test_utils.NewUserObjectMother()
-	user := userMother.DefaultUser()
+	userSignUp := userMother.DefaultUser()
 
-	err := userService.SignUp(user)
+	userSignIn := userMother.DefaultUser()
+	// Not deterministic passwd gen
+	hasher.EXPECT().ComparePasswordhash(userSignIn.Password, unit_test_utils.TEST_HASH_PASSWD).Return(nil)
+
+	// Sign up the user first
+	var err error
+	userSignUp.Password = unit_test_utils.TEST_HASH_PASSWD
+
+	// Add the signed-up user to the database directly using GORM
+	t.Require().NoError(suite.db.Create(&userSignUp).Error)
+
+	// Now attempt to sign in with the user
+	token, err := userService.SignIn(userSignIn)
 	t.Require().NoError(err)
 
-	token, err := userService.SignIn(user)
-	t.Require().NoError(err)
-
+	// Validate the token
 	err = tokenHandler.ValidateToken(token, unit_test_utils.TEST_HASH_KEY)
 	t.Require().NoError(err)
 }
