@@ -27,7 +27,7 @@ ci-unit:
 ci-integration:
 	export ALLURE_OUTPUT_PATH="../" && \
 	export ALLURE_OUTPUT_FOLDER="./intergration_tests/allure-results" && \
-	go test -tags=integration ./intergration_tests --race
+	go test -tags=integration ./intergration_tests/... --race
 
 
 ci-e2e:
@@ -38,7 +38,7 @@ ci-e2e:
 	
 ci-concat-reports:
 	ls -la 
-	ls -la ./unit
+	ls -la ./intergration_tests
 	mkdir allure-results
 	cp unit/allure-results/* allure-results/
 	cp integration_tests/allure-results/* allure-results/
