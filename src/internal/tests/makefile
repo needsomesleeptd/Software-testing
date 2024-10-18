@@ -41,7 +41,7 @@ ci-concat-reports:
 	ls -la ./intergration_tests
 	mkdir allure-results
 	cp unit/allure-results/* allure-results/
-	cp integration_tests/allure-results/* allure-results/
+	cp intergration_tests/allure-results/* allure-results/
 	cp end2end/allure-results/* allure-results/
 
 .PHONY: test allure report ci-unit
