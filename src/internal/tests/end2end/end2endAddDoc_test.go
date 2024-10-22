@@ -92,8 +92,12 @@ func (s *E2ESuite) AfterEach(t provider.T) {
 }
 
 func (s *E2ESuite) Test_E2ELoadingDocument(t provider.T) {
-	fmt.Print("STARTING THE TEST")
 	s.wg.Wait()
+
+	if os.Getenv("INTEGRATION_FAILED") != "" {
+		t.Skip("INTEGRATION test failed, skipping")
+	}
+
 	user := unit_test_utils.NewUserObjectMother().DefaultUser()
 	userDTO := models_dto.ToDtoUser(*user)
 	reqSignUp := auth_handler.RequestSignUp{User: *userDTO}

@@ -9,6 +9,7 @@ import (
 	auth_utils "annotater/internal/pkg/authUtils"
 	integration_utils "annotater/internal/tests/intergration_tests/utils"
 	unit_test_utils "annotater/internal/tests/utils"
+	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -21,6 +22,9 @@ type ITAuthTestSuite struct {
 }
 
 func (suite *ITAuthTestSuite) TestUsecaseSignUp(t provider.T) {
+	if os.Getenv("UNIT_FAILED") != "" {
+		t.Skip("Unit test failed, skipping")
+	}
 	// Ensure db is not nil before proceeding
 	container, db := integration_utils.CreateDBInContainer(t)
 	defer integration_utils.DestroyContainer(t, container)
@@ -51,6 +55,10 @@ func (suite *ITAuthTestSuite) TestUsecaseSignUp(t provider.T) {
 }
 
 func (suite *ITAuthTestSuite) TestUsecaseSignIn(t provider.T) {
+	if os.Getenv("UNIT_FAILED") != "" {
+		t.Skip("Unit test failed, skipping")
+	}
+
 	container, db := integration_utils.CreateDBInContainer(t)
 	defer integration_utils.DestroyContainer(t, container)
 	t.Require().NotNil(db)

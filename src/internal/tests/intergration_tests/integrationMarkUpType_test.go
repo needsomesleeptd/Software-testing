@@ -3,6 +3,7 @@
 package integration_tests
 
 import (
+	"os"
 	"testing"
 
 	service "annotater/internal/bl/anotattionTypeService"
@@ -20,6 +21,9 @@ type MarkupTypeTestSuite struct {
 }
 
 func (suite *MarkupTypeTestSuite) TestUsecaseAddMarkUpType(t provider.T) {
+	if os.Getenv("UNIT_FAILED") != "" {
+		t.Skip("Unit test failed, skipping")
+	}
 	container, db := integration_utils.CreateDBInContainer(t)
 	defer integration_utils.DestroyContainer(t, container)
 	t.Require().NotNil(db)
@@ -44,6 +48,9 @@ func (suite *MarkupTypeTestSuite) TestUsecaseAddMarkUpType(t provider.T) {
 }
 
 func (suite *MarkupTypeTestSuite) TestUsecaseGetMarkUpType(t provider.T) {
+	if os.Getenv("UNIT_FAILED") != "" {
+		t.Skip("Unit test failed, skipping")
+	}
 	container, db := integration_utils.CreateDBInContainer(t)
 	defer integration_utils.DestroyContainer(t, container)
 	t.Require().NotNil(db)
@@ -66,6 +73,9 @@ func (suite *MarkupTypeTestSuite) TestUsecaseGetMarkUpType(t provider.T) {
 }
 
 func (suite *MarkupTypeTestSuite) TestUsecaseDeleteMarkUpType(t provider.T) {
+	if os.Getenv("UNIT_FAILED") != "" {
+		t.Skip("Unit test failed, skipping")
+	}
 	container, db := integration_utils.CreateDBInContainer(t)
 	defer integration_utils.DestroyContainer(t, container)
 	t.Require().NotNil(db)

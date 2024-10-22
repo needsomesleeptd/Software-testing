@@ -19,21 +19,40 @@ allure:
 report: test allure
 
 
+e2e:
+	export CONFIG_PATH="/home/andrew/uni/testing/Software-testing/src/config/local.yaml" && \
+	go test -tags=e2e ./end2end/... --race
+
 ci-unit:
-	export ALLURE_OUTPUT_PATH="../" && \
- 	export ALLURE_OUTPUT_FOLDER="./unit-allure" && \ 
-	go test -tags=unit ./unit --race
+	@export ALLURE_OUTPUT_PATH="../" && \
+	export ALLURE_OUTPUT_FOLDER="./unit-allure" && \
+	if ! go test -tags=unit ./unit/... --race; then \
+		echo "export UNIT_FAILED=true" >> .env; \
+		echo "Tests unit have failed, UNIT_FAILED variable written to .env."; \
+	fi
 
 ci-integration:
 	export ALLURE_OUTPUT_PATH="../" && \
 	export ALLURE_OUTPUT_FOLDER="./intergration_tests/allure-results" && \
-	go test -tags=integration ./intergration_tests/... --race
+	if  cat .env | grep -q 'UNIT_FAILED'; then \
+		export UNIT_FAILED="1"; \
+		echo "UNIT_FAILED is set to 1."; \
+		echo "export INTEGRATION_FAILED=true" >> .env; \
+	fi && \
+	if ! go test -tags=integration ./intergration_tests/... --race; then \
+		echo "export INTEGRATION_FAILED=true" > .env; \
+		echo "Tests integration have failed, INTEGRATION_FAILED variable written to .env."; \
+	fi
 
 
 ci-e2e:
-	export ALLURE_OUTPUT_PATH="../" && \
+	@export ALLURE_OUTPUT_PATH="../" && \
 	export ALLURE_OUTPUT_FOLDER="./end2end/allure-results" && \
-	export CONFIG_PATH="${GITHUB_WORKSPACE}/src/config/local.yaml" && \
+	export CONFIG_PATH="$(GITHUB_WORKSPACE)/src/config/local.yaml" && \
+	if grep -q 'UNIT_FAILED' .env || grep -q 'INTEGRATION_FAILED' .env; then \
+		export INTEGRATION_FAILED="1"; \
+		echo "Set INTEGRATION_FAILED to 1."; \
+	fi && \
 	go test -tags=e2e ./end2end/... --race
 	
 ci-concat-reports:

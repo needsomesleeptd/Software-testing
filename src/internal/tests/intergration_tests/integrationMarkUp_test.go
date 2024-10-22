@@ -8,6 +8,7 @@ import (
 	models_da "annotater/internal/models/modelsDA"
 	integration_utils "annotater/internal/tests/intergration_tests/utils"
 	unit_test_utils "annotater/internal/tests/utils"
+	"os"
 	"testing"
 
 	"github.com/ozontech/allure-go/pkg/framework/provider"
@@ -19,6 +20,9 @@ type MarkupTestSuite struct {
 }
 
 func (suite *MarkupTestSuite) TestUsecaseAddMarkUp(t provider.T) {
+	if os.Getenv("UNIT_FAILED") != "" {
+		t.Skip("Unit test failed, skipping")
+	}
 
 	container, db := integration_utils.CreateDBInContainer(t)
 	defer integration_utils.DestroyContainer(t, container)
@@ -50,7 +54,9 @@ func (suite *MarkupTestSuite) TestUsecaseAddMarkUp(t provider.T) {
 }
 
 func (suite *MarkupTestSuite) TestUsecaseDeleteMarkUp(t provider.T) {
-
+	if os.Getenv("UNIT_FAILED") != "" {
+		t.Skip("Unit test failed, skipping")
+	}
 	container, db := integration_utils.CreateDBInContainer(t)
 	defer integration_utils.DestroyContainer(t, container)
 	t.Require().NotNil(db)
@@ -83,6 +89,9 @@ func (suite *MarkupTestSuite) TestUsecaseDeleteMarkUp(t provider.T) {
 }
 
 func (suite *MarkupTestSuite) TestUsecaseGetMarkUp(t provider.T) {
+	if os.Getenv("UNIT_FAILED") != "" {
+		t.Skip("Unit test failed, skipping")
+	}
 
 	container, db := integration_utils.CreateDBInContainer(t)
 	defer integration_utils.DestroyContainer(t, container)

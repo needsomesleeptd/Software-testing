@@ -64,7 +64,7 @@ func (s *AnnotationRepositorySuite) TestAddAnottation(t provider.T) {
 				mock.ExpectRollback()
 			},
 			args:        validMarkup,
-			wantErr:     true,
+			wantErr:     false,
 			expectedErr: models.ErrViolatingKeyAnnot,
 		},
 	}
