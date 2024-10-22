@@ -21,13 +21,12 @@ import (
 
 type MarkupTestSuite struct {
 	suite.Suite
-	db          *gorm.DB
-	pgContainer testcontainers.Container
 }
 
-func (suite *MarkupTestSuite) BeforeEach(t provider.T) {
+func createDBInContainer(t provider.T) (testcontainers.Container, *gorm.DB) {
 	ctx := context.Background()
 
+	// Start PostgreSQL container
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:latest",
 		ExposedPorts: []string{"5432/tcp"},
@@ -43,36 +42,38 @@ func (suite *MarkupTestSuite) BeforeEach(t provider.T) {
 		ContainerRequest: req,
 		Started:          true,
 	})
-
 	t.Require().NoError(err)
-	suite.pgContainer = pgContainer
 
+	// Get the host and port for the database
 	host, err := pgContainer.Host(ctx)
 	t.Require().NoError(err)
-
 	port, err := pgContainer.MappedPort(ctx, "5432")
 	t.Require().NoError(err)
 
+	// Open a new database connection for each test
 	dsn := fmt.Sprintf("host=%s port=%s user=test_user password=test_password dbname=test_db sslmode=disable", host, port.Port())
 	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}), &gorm.Config{})
 	t.Require().NoError(err)
 
-	t.Require().NoError(db.AutoMigrate(&models_da.Markup{}))
-	suite.db = db
+	// Automatically migrate the schema for each test, check for errors
+	err = db.AutoMigrate(&models_da.Markup{})
+	t.Require().NoError(err) // Ensure migration succeeds
+
+	return pgContainer, db
 }
 
-func (suite *MarkupTestSuite) TearDownTest(t provider.T) {
-	// Optionally, you can log cleanup steps to Allure
-	t.Log("Cleaning up test environment...")
-
-	suite.db.Migrator().DropTable(&models_da.Markup{})
-
+func destroyContainer(t provider.T, pgContainer testcontainers.Container) {
+	// Cleanup the container after each test
 	ctx := context.Background()
-	err := suite.pgContainer.Terminate(ctx)
+	err := pgContainer.Terminate(ctx)
 	t.Require().NoError(err)
 }
 
 func (suite *MarkupTestSuite) TestUsecaseAddMarkUp(t provider.T) {
+
+	container, db := createDBInContainer(t)
+	defer destroyContainer(t, container)
+	t.Require().NotNil(db)
 
 	markupMother := unit_test_utils.NewMarkupBuilder()
 	markup := markupMother.WithPageData(unit_test_utils.VALID_PNG_BUFFER).
@@ -81,16 +82,16 @@ func (suite *MarkupTestSuite) TestUsecaseAddMarkUp(t provider.T) {
 		WithErrorBB(unit_test_utils.VALID_BBS_PARAMS).
 		Build()
 
-	anotattionRepo := annot_repo_adapter.NewAnotattionRepositoryAdapter(suite.db)
+	anotattionRepo := annot_repo_adapter.NewAnotattionRepositoryAdapter(db)
 	anotattionService := annot_service.NewAnnotattionService(unit_test_utils.MockLogger, anotattionRepo)
 
 	gotMarkUp := models_da.Markup{ID: markup.ID}
-	t.Require().Error(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
+	t.Require().Error(db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
 
 	err := anotattionService.AddAnottation(markup)
 	t.Require().NoError(err)
 
-	t.Assert().NoError(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
+	t.Assert().NoError(db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
 	markUpNew, err := models_da.FromDaMarkup(&gotMarkUp)
 	t.Require().NoError(err)
 	t.Assert().Equal(markUpNew, *markup)
@@ -99,6 +100,10 @@ func (suite *MarkupTestSuite) TestUsecaseAddMarkUp(t provider.T) {
 
 func (suite *MarkupTestSuite) TestUsecaseDeleteMarkUp(t provider.T) {
 
+	container, db := createDBInContainer(t)
+	defer destroyContainer(t, container)
+	t.Require().NotNil(db)
+
 	markupMother := unit_test_utils.NewMarkupBuilder()
 	markup := markupMother.WithPageData(unit_test_utils.VALID_PNG_BUFFER).
 		WithCreatorID(1).
@@ -106,25 +111,29 @@ func (suite *MarkupTestSuite) TestUsecaseDeleteMarkUp(t provider.T) {
 		WithErrorBB(unit_test_utils.VALID_BBS_PARAMS).
 		Build()
 
-	anotattionRepo := annot_repo_adapter.NewAnotattionRepositoryAdapter(suite.db)
+	anotattionRepo := annot_repo_adapter.NewAnotattionRepositoryAdapter(db)
 	anotattionService := annot_service.NewAnnotattionService(unit_test_utils.MockLogger, anotattionRepo)
 
 	markupDa, err := models_da.ToDaMarkup(*markup)
 	t.Require().NoError(err)
 
-	t.Require().NoError(suite.db.Create(&markupDa).Error)
+	t.Require().NoError(db.Create(&markupDa).Error)
 
 	gotMarkUp := models_da.Markup{ID: markup.ID}
-	t.Require().NoError(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
+	t.Require().NoError(db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
 
 	err = anotattionService.DeleteAnotattion(markup.ID)
 	t.Require().NoError(err)
 
-	t.Require().Error(suite.db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
+	t.Require().Error(db.Model(&models_da.Markup{}).Where("id = ?", markup.ID).Take(&gotMarkUp).Error)
 
 }
 
 func (suite *MarkupTestSuite) TestUsecaseGetMarkUp(t provider.T) {
+
+	container, db := createDBInContainer(t)
+	defer destroyContainer(t, container)
+	t.Require().NotNil(db)
 
 	markupMother := unit_test_utils.NewMarkupBuilder()
 	markup := markupMother.WithPageData(unit_test_utils.VALID_PNG_BUFFER).
@@ -135,9 +144,9 @@ func (suite *MarkupTestSuite) TestUsecaseGetMarkUp(t provider.T) {
 
 	markupDa, err := models_da.ToDaMarkup(*markup)
 	t.Require().NoError(err)
-	t.Require().NoError(suite.db.Create(&markupDa).Error)
+	t.Require().NoError(db.Create(&markupDa).Error)
 
-	anotattionRepo := annot_repo_adapter.NewAnotattionRepositoryAdapter(suite.db)
+	anotattionRepo := annot_repo_adapter.NewAnotattionRepositoryAdapter(db)
 	anotattionService := annot_service.NewAnnotattionService(unit_test_utils.MockLogger, anotattionRepo)
 
 	markUp, err := anotattionService.GetAnottationByID(markupDa.ID)

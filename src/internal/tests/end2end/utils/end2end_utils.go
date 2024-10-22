@@ -42,7 +42,7 @@ import (
 
 func RunTheApp(db *gorm.DB, done chan os.Signal, configPath string, wg *sync.WaitGroup) {
 
-	config := config.MustLoad("configPath")
+	config := config.MustLoad(configPath)
 	//log := unit_test_utils.MockLogger
 
 	log := logger_setup.Setuplog(config)

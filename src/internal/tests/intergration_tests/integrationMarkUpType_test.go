@@ -22,13 +22,12 @@ import (
 
 type MarkupTypeTestSuite struct {
 	suite.Suite
-	db          *gorm.DB
-	pgContainer testcontainers.Container
 }
 
-func (suite *MarkupTypeTestSuite) BeforeEach(t provider.T) {
+func createDBInContainer(t provider.T) (testcontainers.Container, *gorm.DB) {
 	ctx := context.Background()
 
+	// Start PostgreSQL container
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:latest",
 		ExposedPorts: []string{"5432/tcp"},
@@ -44,64 +43,68 @@ func (suite *MarkupTypeTestSuite) BeforeEach(t provider.T) {
 		ContainerRequest: req,
 		Started:          true,
 	})
-
 	t.Require().NoError(err)
-	suite.pgContainer = pgContainer
 
+	// Get the host and port for the database
 	host, err := pgContainer.Host(ctx)
 	t.Require().NoError(err)
-
 	port, err := pgContainer.MappedPort(ctx, "5432")
 	t.Require().NoError(err)
 
+	// Open a new database connection for each test
 	dsn := fmt.Sprintf("host=%s port=%s user=test_user password=test_password dbname=test_db sslmode=disable", host, port.Port())
 	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}), &gorm.Config{})
 	t.Require().NoError(err)
 
-	t.Require().NoError(db.AutoMigrate(&models_da.MarkupType{}))
-	suite.db = db
+	// Automatically migrate the schema for each test, check for errors
+	err = db.AutoMigrate(&models_da.MarkupType{})
+	t.Require().NoError(err) // Ensure migration succeeds
+
+	return pgContainer, db
 }
 
-func (suite *MarkupTypeTestSuite) TearDownTest(t provider.T) {
-	// Cleanup steps can be logged to Allure
-	t.Log("Cleaning up test environment...")
-
-	suite.db.Migrator().DropTable(&models_da.MarkupType{})
-
+func destroyContainer(t provider.T, pgContainer testcontainers.Container) {
+	// Cleanup the container after each test
 	ctx := context.Background()
-	err := suite.pgContainer.Terminate(ctx)
+	err := pgContainer.Terminate(ctx)
 	t.Require().NoError(err)
 }
 
 func (suite *MarkupTypeTestSuite) TestUsecaseAddMarkUpType(t provider.T) {
+	container, db := createDBInContainer(t)
+	defer destroyContainer(t, container)
+	t.Require().NotNil(db)
 
-	anotattionTypeRepo := repo_adapter.NewAnotattionTypeRepositoryAdapter(suite.db)
+	anotattionTypeRepo := repo_adapter.NewAnotattionTypeRepositoryAdapter(db)
 	anotattionTypeService := service.NewAnotattionTypeService(unit_test_utils.MockLogger, anotattionTypeRepo)
 
 	markUpTypeMother := unit_test_utils.NewMarkupTypeObjectMother()
 	markUpType := markUpTypeMother.NewDefaultMarkupType()
 
 	gotMarkUpType := models_da.MarkupType{ID: markUpType.ID}
-	t.Require().Error(suite.db.Model(&models_da.MarkupType{}).Where("id = ?", markUpType.ID).Take(&gotMarkUpType).Error)
+	t.Require().Error(db.Model(&models_da.MarkupType{}).Where("id = ?", markUpType.ID).Take(&gotMarkUpType).Error)
 
 	err := anotattionTypeService.AddAnottationType(markUpType)
 	t.Require().NoError(err)
 
-	t.Assert().NoError(suite.db.Model(&models_da.MarkupType{}).Where("id = ?", markUpType.ID).Take(&gotMarkUpType).Error)
+	t.Assert().NoError(db.Model(&models_da.MarkupType{}).Where("id = ?", markUpType.ID).Take(&gotMarkUpType).Error)
 	t.Assert().Equal(models_da.FromDaMarkupType(&gotMarkUpType), *markUpType)
 
 }
 
 func (suite *MarkupTypeTestSuite) TestUsecaseGetMarkUpType(t provider.T) {
+	container, db := createDBInContainer(t)
+	defer destroyContainer(t, container)
+	t.Require().NotNil(db)
 
-	anotattionTypeRepo := repo_adapter.NewAnotattionTypeRepositoryAdapter(suite.db)
+	anotattionTypeRepo := repo_adapter.NewAnotattionTypeRepositoryAdapter(db)
 	anotattionTypeService := service.NewAnotattionTypeService(unit_test_utils.MockLogger, anotattionTypeRepo)
 
 	markUpTypeMother := unit_test_utils.NewMarkupTypeObjectMother()
 	markUpType := markUpTypeMother.NewDefaultMarkupType()
 
 	markUpTypeDa := models_da.ToDaMarkupType(*markUpType)
-	t.Require().NoError(suite.db.Create(&markUpTypeDa).Error)
+	t.Require().NoError(db.Create(&markUpTypeDa).Error)
 
 	gotMarkUpType, err := anotattionTypeService.GetAnottationTypeByID(markUpType.ID)
 	t.Require().NoError(err)
@@ -110,21 +113,24 @@ func (suite *MarkupTypeTestSuite) TestUsecaseGetMarkUpType(t provider.T) {
 }
 
 func (suite *MarkupTypeTestSuite) TestUsecaseDeleteMarkUpType(t provider.T) {
+	container, db := createDBInContainer(t)
+	defer destroyContainer(t, container)
+	t.Require().NotNil(db)
 
-	anotattionTypeRepo := repo_adapter.NewAnotattionTypeRepositoryAdapter(suite.db)
+	anotattionTypeRepo := repo_adapter.NewAnotattionTypeRepositoryAdapter(db)
 	anotattionTypeService := service.NewAnotattionTypeService(unit_test_utils.MockLogger, anotattionTypeRepo)
 
 	markUpTypeMother := unit_test_utils.NewMarkupTypeObjectMother()
 	markUpType := markUpTypeMother.NewDefaultMarkupType()
 
 	markUpTypeDa := models_da.ToDaMarkupType(*markUpType)
-	t.Require().NoError(suite.db.Create(&markUpTypeDa).Error)
+	t.Require().NoError(db.Create(&markUpTypeDa).Error)
 
 	err := anotattionTypeService.DeleteAnotattionType(markUpType.ID)
 	t.Require().NoError(err)
 
 	gotMarkUpType := models_da.MarkupType{ID: markUpType.ID}
-	t.Require().Error(suite.db.Model(&models_da.MarkupType{}).Where("id = ?", markUpType.ID).Take(&gotMarkUpType).Error)
+	t.Require().Error(db.Model(&models_da.MarkupType{}).Where("id = ?", markUpType.ID).Take(&gotMarkUpType).Error)
 
 }
 
