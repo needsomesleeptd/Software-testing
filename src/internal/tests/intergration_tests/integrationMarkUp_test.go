@@ -21,7 +21,7 @@ type MarkupTestSuite struct {
 
 func (suite *MarkupTestSuite) TestUsecaseAddMarkUp(t provider.T) {
 	if os.Getenv("UNIT_FAILED") != "" {
-		t.XSkip()
+		t.Skip("Unit test failed, skipping")
 	}
 
 	container, db := integration_utils.CreateDBInContainer(t)

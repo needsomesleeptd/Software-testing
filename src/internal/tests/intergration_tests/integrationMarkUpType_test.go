@@ -49,7 +49,7 @@ func (suite *MarkupTypeTestSuite) TestUsecaseAddMarkUpType(t provider.T) {
 
 func (suite *MarkupTypeTestSuite) TestUsecaseGetMarkUpType(t provider.T) {
 	if os.Getenv("UNIT_FAILED") != "" {
-		t.XSkip()
+		t.Skip("Unit test failed, skipping")
 	}
 	container, db := integration_utils.CreateDBInContainer(t)
 	defer integration_utils.DestroyContainer(t, container)
