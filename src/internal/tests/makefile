@@ -48,7 +48,7 @@ ci-integration:
 ci-e2e:
 	@export ALLURE_OUTPUT_PATH="../" && \
 	export ALLURE_OUTPUT_FOLDER="./end2end/allure-results" && \
-	export CONFIG_PATH="$(GITHUB_WORKSPACE)/src/config/local.yaml" && \
+	export CONFIG_PATH="${GITHUB_WORKSPACE}/src/config/local.yaml" && \
 	if grep -q 'UNIT_FAILED' .env || grep -q 'INTEGRATION_FAILED' .env; then \
 		export INTEGRATION_FAILED="1"; \
 		echo "Set INTEGRATION_FAILED to 1."; \
