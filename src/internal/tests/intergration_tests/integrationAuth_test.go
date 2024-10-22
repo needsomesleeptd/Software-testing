@@ -7,75 +7,26 @@ import (
 	user_repo_adapter "annotater/internal/bl/userService/userRepo/userRepoAdapter"
 	models_da "annotater/internal/models/modelsDA"
 	auth_utils "annotater/internal/pkg/authUtils"
+	integration_utils "annotater/internal/tests/intergration_tests/utils"
 	unit_test_utils "annotater/internal/tests/utils"
-	"context"
-	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/ozontech/allure-go/pkg/framework/provider"
 	"github.com/ozontech/allure-go/pkg/framework/suite"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 type ITAuthTestSuite struct {
 	suite.Suite
 }
 
-func createDBInContainer(t provider.T) (testcontainers.Container, *gorm.DB) {
-	ctx := context.Background()
-
-	// Start PostgreSQL container
-	req := testcontainers.ContainerRequest{
-		Image:        "postgres:latest",
-		ExposedPorts: []string{"5432/tcp"},
-		Env: map[string]string{
-			"POSTGRES_USER":     "test_user",
-			"POSTGRES_PASSWORD": "test_password",
-			"POSTGRES_DB":       "test_db",
-		},
-		WaitingFor: wait.ForListeningPort("5432/tcp"),
-	}
-
-	pgContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	t.Require().NoError(err)
-
-	// Get the host and port for the database
-	host, err := pgContainer.Host(ctx)
-	t.Require().NoError(err)
-	port, err := pgContainer.MappedPort(ctx, "5432")
-	t.Require().NoError(err)
-
-	// Open a new database connection for each test
-	dsn := fmt.Sprintf("host=%s port=%s user=test_user password=test_password dbname=test_db sslmode=disable", host, port.Port())
-	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}), &gorm.Config{})
-	t.Require().NoError(err)
-
-	// Automatically migrate the schema for each test, check for errors
-	err = db.AutoMigrate(&models_da.User{})
-	t.Require().NoError(err) // Ensure migration succeeds
-
-	return pgContainer, db
-}
-
-func destroyContainer(t provider.T, pgContainer testcontainers.Container) {
-	// Cleanup the container after each test
-	ctx := context.Background()
-	err := pgContainer.Terminate(ctx)
-	t.Require().NoError(err)
-}
-
 func (suite *ITAuthTestSuite) TestUsecaseSignUp(t provider.T) {
 	// Ensure db is not nil before proceeding
-	container, db := createDBInContainer(t)
-	defer destroyContainer(t, container)
+	container, db := integration_utils.CreateDBInContainer(t)
+	defer integration_utils.DestroyContainer(t, container)
 	t.Require().NotNil(db)
+	err := db.AutoMigrate(&models_da.User{})
+	t.Require().NoError(err)
 
 	userRepo := user_repo_adapter.NewUserRepositoryAdapter(db)
 	hasher := auth_utils.NewPasswordHashCrypto()
@@ -85,7 +36,7 @@ func (suite *ITAuthTestSuite) TestUsecaseSignUp(t provider.T) {
 	userMother := unit_test_utils.NewUserObjectMother()
 	user := userMother.DefaultUser()
 
-	err := userService.SignUp(user)
+	err = userService.SignUp(user)
 	t.Require().NoError(err)
 
 	var gotUserDa *models_da.User
@@ -100,9 +51,11 @@ func (suite *ITAuthTestSuite) TestUsecaseSignUp(t provider.T) {
 }
 
 func (suite *ITAuthTestSuite) TestUsecaseSignIn(t provider.T) {
-	container, db := createDBInContainer(t)
-	defer destroyContainer(t, container)
+	container, db := integration_utils.CreateDBInContainer(t)
+	defer integration_utils.DestroyContainer(t, container)
 	t.Require().NotNil(db)
+	err := db.AutoMigrate(&models_da.User{})
+	t.Require().NoError(err)
 
 	// Setup mock controller
 	ctr := gomock.NewController(t)
@@ -122,7 +75,7 @@ func (suite *ITAuthTestSuite) TestUsecaseSignIn(t provider.T) {
 	//hasher.EXPECT().ComparePasswordhash(userSignIn.Password, unit_test_utils.TEST_HASH_PASSWD).Return(nil)
 
 	// Sign up the user first
-	var err error
+
 	userSignUp.Password, err = hasher.GenerateHash(userSignIn.Password)
 	t.Require().NoError(err)
 
