@@ -24,7 +24,7 @@ e2e:
 	go test -tags=e2e ./end2end/... --race
 
 ci-unit:
-	@export ALLURE_OUTPUT_PATH="../" && \
+	export ALLURE_OUTPUT_PATH="../" && \
 	export ALLURE_OUTPUT_FOLDER="./unit-allure" && \
 	if ! go test -tags=unit ./unit/... --race; then \
 		echo "export UNIT_FAILED=true" >> .env; \
@@ -34,7 +34,7 @@ ci-unit:
 ci-integration:
 	export ALLURE_OUTPUT_PATH="../" && \
 	export ALLURE_OUTPUT_FOLDER="./intergration_tests/allure-results" && \
-	if  cat .env | grep -q 'UNIT_FAILED'; then \
+	if  grep -q 'UNIT_FAILED' .env; then \
 		export UNIT_FAILED="1"; \
 		echo "UNIT_FAILED is set to 1."; \
 		echo "export INTEGRATION_FAILED=true" >> .env; \
