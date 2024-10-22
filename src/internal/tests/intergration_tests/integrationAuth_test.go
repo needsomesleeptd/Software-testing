@@ -23,7 +23,7 @@ type ITAuthTestSuite struct {
 
 func (suite *ITAuthTestSuite) TestUsecaseSignUp(t provider.T) {
 	if os.Getenv("UNIT_FAILED") != "" {
-		t.Skip("Unit test failed, skipping")
+		t.XSkip()
 	}
 	// Ensure db is not nil before proceeding
 	container, db := integration_utils.CreateDBInContainer(t)
@@ -56,7 +56,7 @@ func (suite *ITAuthTestSuite) TestUsecaseSignUp(t provider.T) {
 
 func (suite *ITAuthTestSuite) TestUsecaseSignIn(t provider.T) {
 	if os.Getenv("UNIT_FAILED") != "" {
-		t.Skip("Unit test failed, skipping")
+		t.XSkip()
 	}
 
 	container, db := integration_utils.CreateDBInContainer(t)

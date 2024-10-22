@@ -25,7 +25,7 @@ e2e:
 
 ci-unit:
 	export ALLURE_OUTPUT_PATH="../" && \
-	export ALLURE_OUTPUT_FOLDER="./unit-allure" && \
+	export ALLURE_OUTPUT_FOLDER="./unit/allure-results" && \
 	if ! go test -tags=unit ./unit/... --race; then \
 		echo "export UNIT_FAILED=true" >> .env; \
 		echo "Tests unit have failed, UNIT_FAILED variable written to .env."; \

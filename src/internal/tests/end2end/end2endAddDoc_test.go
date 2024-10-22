@@ -95,7 +95,7 @@ func (s *E2ESuite) Test_E2ELoadingDocument(t provider.T) {
 	s.wg.Wait()
 
 	if os.Getenv("INTEGRATION_FAILED") != "" {
-		t.Skip("INTEGRATION test failed, skipping")
+		t.XSkip()
 	}
 
 	user := unit_test_utils.NewUserObjectMother().DefaultUser()
