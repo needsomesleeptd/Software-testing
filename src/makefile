@@ -7,6 +7,8 @@ rerun-gatling:
 	docker compose up gatling-at-once gatling-per-second
 
 
+docker-app:
+	docker compose up gin-hello echo-hello prometheus grafana
 
 
 rm:

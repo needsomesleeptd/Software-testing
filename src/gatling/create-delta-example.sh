@@ -1,0 +1,2 @@
+#!/bin/bash
+java -jar ./gatling-report-6.1-capsule-fat.jar  /home/andrew/uni/testing/Software-testing/src/gatling/results/serveratonceloadsimulation*7/simulation.log -o serverpersecondloadsimulation-delta -

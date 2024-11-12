@@ -34,6 +34,7 @@ services:
       resources:
         limits:
           cpus: "1"
+          memory: 256M ## however it is able to run on 20M
 
     depends_on:
       - prometheus
@@ -41,13 +42,14 @@ services:
   gin-hello:
     container_name: gin-hello
     build:
-     context: ./test_apps/echo
+     context: ./test_apps/gin
     ports:
       - "8082:8080"
     deploy:
       resources:
         limits:
           cpus: "1"
+          memory: 256M         
     depends_on:
       - prometheus
 
@@ -75,11 +77,3 @@ services:
     entrypoint: ["/bin/sh", "-c", "gatling.sh -s ServerPerSecondLoadSimulation"]
   
 
-  gatling-results:
-    image: denvazh/gatling:latest
-    container_name: gatling-results
-    volumes:
-      - ./gatling/simulations:/opt/gatling/user-files/simulations
-      - ./gatling/results:/opt/gatling/results
-    entrypoint: ["/bin/sh", "-c", "gatling.sh -o $(ls /opt/gatling/user-files/simulations/*simulation.log) -o serveratonceloadsimulation-trend"]
-   
