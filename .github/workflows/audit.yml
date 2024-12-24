@@ -51,13 +51,13 @@ jobs:
       run: |
         go install github.com/rauzh/go-complexity-analysis/cmd/complexity@9a7cad4
         go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
+        
     
     - name: Run golint
       continue-on-error: true
-      run: golint ./...
+      run: golangci-lint ./...
   
     - name: Launch govet
-      continue-on-error: true
       run: |
           go vet -vettool="$(which complexity)" --cycloover 10 --halsteadover 40 ./...
           if [ $? -ne 0 ]; then exit 1; fi
