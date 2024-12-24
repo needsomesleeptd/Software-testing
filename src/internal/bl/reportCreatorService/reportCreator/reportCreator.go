@@ -86,80 +86,119 @@ func (cr *PDFReportCreator) saveImagesWithBBs(filePathSave string, markups []mod
 }
 
 func (cr *PDFReportCreator) CreateReport(reportID uuid.UUID, markups []models.Markup, markupTypes []models.MarkupType) (*models.ErrorReport, error) {
-	senderFolderPath := cr.folderPath + "/" + reportID.String() + "/"
-
-	hashMarkUpType := make(map[uint64]models.MarkupType)
-
-	for _, markUpType := range markupTypes {
-		hashMarkUpType[markUpType.ID] = markUpType
+	senderFolderPath := cr.createSenderFolder(reportID)
+	if senderFolderPath == "" {
+		return nil, fmt.Errorf("failed to create folder for report ID: %v", reportID)
 	}
-	err := os.Mkdir(senderFolderPath, 0777)
+
+	hashMarkUpType := cr.createMarkupTypeMap(markupTypes)
+
+	texFilePath, err := cr.createTexFile(senderFolderPath)
 	if err != nil {
 		return nil, err
 	}
-	texFilePath := senderFolderPath + texFileFilename
 
+	imgPaths, err := cr.createImageFolder(senderFolderPath, markups)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := cr.generateLatexContent(markups, hashMarkUpType, imgPaths)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cr.writeTexFile(texFilePath, content); err != nil {
+		return nil, err
+	}
+
+	if err := cr.compileLatex(texFilePath, senderFolderPath); err != nil {
+		return nil, err
+	}
+
+	return cr.readPDF(senderFolderPath, reportID)
+}
+
+func (cr *PDFReportCreator) createSenderFolder(reportID uuid.UUID) string {
+	path := cr.folderPath + "/" + reportID.String() + "/"
+	if err := os.Mkdir(path, 0777); err != nil {
+		return ""
+	}
+	return path
+}
+
+func (cr *PDFReportCreator) createMarkupTypeMap(markupTypes []models.MarkupType) map[uint64]models.MarkupType {
+	hashMap := make(map[uint64]models.MarkupType)
+	for _, markupType := range markupTypes {
+		hashMap[markupType.ID] = markupType
+	}
+	return hashMap
+}
+
+func (cr *PDFReportCreator) createTexFile(senderFolderPath string) (string, error) {
+	texFilePath := senderFolderPath + texFileFilename
 	file, err := os.Create(texFilePath)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer file.Close()
+	return texFilePath, nil
+}
 
-	//creating folder for images
-	err = os.MkdirAll(senderFolderPath+imgFolderPath, 0777)
-	if err != nil {
+func (cr *PDFReportCreator) createImageFolder(senderFolderPath string, markups []models.Markup) ([]string, error) {
+	imgFolderPath := senderFolderPath + imgFolderPath
+	if err := os.MkdirAll(imgFolderPath, 0777); err != nil {
 		return nil, err
 	}
+	return cr.saveImagesWithBBs(imgFolderPath, markups)
+}
 
-	imgPaths, err := cr.saveImagesWithBBs(senderFolderPath+imgFolderPath, markups)
-	if err != nil {
-		return nil, err
-	}
-	// Start writing LaTeX content
+func (cr *PDFReportCreator) generateLatexContent(markups []models.Markup, hashMarkUpType map[uint64]models.MarkupType, imgPaths []string) (string, error) {
 	content := texHeader
-
-	// Iterate over images and texts to insert each pair on a separate page
 	for i := 0; i < len(markups); i++ {
 		imgLatex := cr.addImageLatex(imgPaths[i])
-		var description string
-		if markupType, exists := hashMarkUpType[markups[i].ClassLabel]; exists {
-			description = markupType.Description
-		} else {
-			description = fmt.Sprintf("error not found description for label: %v", markups[i].ClassLabel)
-		}
+		description := cr.getDescription(markups[i], hashMarkUpType)
 		content += imgLatex + description + "\n"
 	}
+	return content + texTail, nil
+}
 
-	// End writing LaTeX content
-	content += texTail
-
-	// Write the content to the LaTeX file
-	_, err = file.WriteString(content)
-	if err != nil {
-		return nil, err
+func (cr *PDFReportCreator) getDescription(markup models.Markup, hashMarkUpType map[uint64]models.MarkupType) string {
+	if markupType, exists := hashMarkUpType[markup.ClassLabel]; exists {
+		return markupType.Description
 	}
+	return fmt.Sprintf("error not found description for label: %v", markup.ClassLabel)
+}
 
+func (cr *PDFReportCreator) writeTexFile(texFilePath, content string) error {
+	file, err := os.Create(texFilePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.WriteString(content)
+	return err
+}
+
+func (cr *PDFReportCreator) compileLatex(texFilePath, senderFolderPath string) error {
 	outputDirKey := fmt.Sprintf("-output-directory=%s", senderFolderPath)
-
 	cmd := exec.Command("pdflatex", outputDirKey, texFilePath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err = cmd.Run() //run twice for latex reasons
-	if err != nil {
-		return nil, fmt.Errorf("error running first latex compile: %v", err)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error running latex compile: %v", err)
 	}
+	return nil
+}
 
+func (cr *PDFReportCreator) readPDF(senderFolderPath string, reportID uuid.UUID) (*models.ErrorReport, error) {
 	pdfFilePath := senderFolderPath + pdfFileFilename
 	pdfBytes, err := os.ReadFile(pdfFilePath)
 	if err != nil {
 		return nil, err
 	}
-
-	pdfByteSlice := []byte(pdfBytes)
-
-	report := models.ErrorReport{
+	return &models.ErrorReport{
 		DocumentID: reportID,
-		ReportData: pdfByteSlice,
-	}
-	return &report, nil
+		ReportData: pdfBytes,
+	}, nil
 }
