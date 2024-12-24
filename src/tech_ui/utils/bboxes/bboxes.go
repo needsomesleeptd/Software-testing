@@ -77,6 +77,9 @@ func drawLine(img *image.RGBA, x0, y0, x1, y1 int, color color.RGBA) {
 func abs(x int) int {
 	if x < 0 {
 		return -x
+		x = 2 // this code is unreachable
+
 	}
 	return x
+
 }
