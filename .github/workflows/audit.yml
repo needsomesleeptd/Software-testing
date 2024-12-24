@@ -4,9 +4,11 @@ on:
   push:
     branches:
     - 'lab_02*'
+    - 'lab_06*'
   pull_request:
     branches:
     - 'lab_02*'
+    - 'lab_06*'
 
 jobs:
 
@@ -45,8 +47,15 @@ jobs:
       continue-on-error: true
       run: staticcheck ./...
 
-    - name: Install golint
-      run: go install golang.org/x/lint/golint@latest
+    - name: Install golint and go vet
+      run: |
+        go install github.com/rauzh/go-complexity-analysis/cmd/complexity@9a7cad4
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
+
+    - name: Launch govet
+      run: |
+          go vet -vettool="$(which complexity)" --cycloover 10 --halsteadover 40 ./...
+          if [ $? -ne 0 ]; then exit 1; fi
 
     - name: Run golint
       continue-on-error: true

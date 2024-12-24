@@ -1,0 +1,19 @@
+linters:
+  disable-all: true
+  enable:
+    - staticcheck
+    - gocyclo
+    - govet
+run:
+  timeout: 2m
+output:
+  formats:
+    - format: json
+      path: report.json
+
+linters-settings:
+  gocyclo:
+    min-complexity: 11
+  govet:
+    enable:
+      - unreachable
