@@ -1,0 +1,27 @@
+name: Go E2E BDD tests
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.1'
+
+      - name: 'Create env file'
+        shell: bash
+        env:
+          ENV: ${{ secrets.TESTING_LAB_04_ENV }}
+        run: |
+          echo $ENV > .env
+
+      - name: Run E2E tests
+        run: make run-e2e
+
+      - name: Remove env
+        run: make docker-rm
