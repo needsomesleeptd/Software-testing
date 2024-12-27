@@ -16,16 +16,17 @@ import (
 var adminEmail string
 var adminPassword string
 var verificationCodes = make(map[string]string)
+var hasPassedAuth = make(map[string]bool)
 
 func main() {
-	err := godotenv.Load("../.env")
+	err := godotenv.Load("../app.env")
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
 
 	adminEmail = os.Getenv("USER_EMAIL")
 	adminPassword = os.Getenv("USER_PASSWORD")
-
+	verificationCodes[adminEmail] = os.Getenv("USER_SECRET")
 	if adminEmail == "" || adminPassword == "" {
 		log.Fatalf("Invalid password and email")
 	}
@@ -44,30 +45,58 @@ func main() {
 	}
 }
 
+func generateQRCode(secret string, email string, qrFilename string) error {
+	// Create the TOTP key based on the secret and the account
+	opts := totp.GenerateOpts{
+
+		Issuer: "My Web Application",
+
+		AccountName: email,
+
+		Secret: []byte(secret),
+	}
+	key, err := totp.Generate(opts)
+	if err != nil {
+		return fmt.Errorf("failed to create TOTP key: %w", err)
+	}
+
+	// Create the QR Code image
+	buf := new(bytes.Buffer)
+	img, err := key.Image(200, 200)
+	if err != nil {
+		return fmt.Errorf("failed to generate QR code image: %w", err)
+	}
+
+	// Encode the image to PNG
+	if err := png.Encode(buf, img); err != nil {
+		return fmt.Errorf("failed to encode QR code image: %w", err)
+	}
+
+	// Write the QR code to a file
+	if err := os.WriteFile(qrFilename+".png", buf.Bytes(), 0644); err != nil {
+		return fmt.Errorf("failed to write QR code to file: %w", err)
+	}
+
+	return nil
+}
+
 func generateSecretTotp(email string, qrFilename string) (string, error) {
 	options := totp.GenerateOpts{
 		Issuer:      "My Web Application",
 		AccountName: email,
 	}
+
 	key, err := totp.Generate(options)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate TOTP secret: %w", err)
 	}
 
-	buf := new(bytes.Buffer)
-	img, err := key.Image(200, 200)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate QR code image: %w", err)
+	// Generate the QR code and save it to a file
+	if err := generateQRCode(key.Secret(), email, qrFilename); err != nil {
+		return "", err
 	}
 
-	if err := png.Encode(buf, img); err != nil {
-		return "", fmt.Errorf("failed to encode QR code image: %w", err)
-	}
-
-	if err := os.WriteFile(qrFilename+".png", buf.Bytes(), 0644); err != nil {
-		return "", fmt.Errorf("failed to write QR code to file: %w", err)
-	}
-
+	// Return the TOTP secret
 	return key.Secret(), nil
 }
 
@@ -93,8 +122,11 @@ func loginHandler(c *gin.Context) {
 			return
 		}
 		verificationCodes[request.Email] = totpCode
+		hasPassedAuth[request.Email] = true
 		c.JSON(http.StatusOK, gin.H{"message": "Totp Qr saved on the disk", "totp_secret": verificationCodes[request.Email]})
 	} else {
+		hasPassedAuth[request.Email] = true
+		generateQRCode(verificationCodes[request.Email], request.Email, request.Email+".png")
 		c.JSON(http.StatusOK, gin.H{"message": "Totp Qr saved on the disk, you must already have totp"})
 	}
 }
@@ -104,9 +136,13 @@ func verifyLoginHandler(c *gin.Context) {
 		Email string `json:"email"`
 		Code  string `json:"code"`
 	}
-
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	if !hasPassedAuth[request.Email] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Need to login first"})
 		return
 	}
 
