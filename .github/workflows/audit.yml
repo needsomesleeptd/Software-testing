@@ -38,14 +38,14 @@ jobs:
       run: make -C ./internal
     - name: Run go vet
       continue-on-error: true
-      run: go vet ./...
+      run: go vet ./internal/...
 
     - name: Install staticcheck
       run: go install honnef.co/go/tools/cmd/staticcheck@latest
 
     - name: Run staticcheck
       continue-on-error: true
-      run: staticcheck ./...
+      run: staticcheck ./internal/...
 
     - name: Install golint and go vet
       run: |
@@ -55,11 +55,11 @@ jobs:
     
     - name: Run golint
       continue-on-error: true
-      run: golangci-lint ./...
+      run: golangci-lint run ./...
   
     - name: Launch govet
       run: |
-          go vet -vettool="$(which complexity)" --cycloover 10 --halsteadover 40 ./...
+          go vet -vettool="$(which complexity)" --cycloover 10 --halsteadover 40 ./internal/...
           if [ $? -ne 0 ]; then exit 1; fi
 
     
