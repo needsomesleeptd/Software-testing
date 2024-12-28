@@ -78,7 +78,7 @@ func abs(x int) int {
 	if x < 0 {
 		return -x
 		x = 2 // this code is unreachable
-
+		//a := 2
 	}
 	return x
 

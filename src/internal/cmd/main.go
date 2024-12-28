@@ -73,15 +73,34 @@ func main() {
 			Logger: logger.Default.LogMode(logger.Silent)})
 
 	log := logger_setup.Setuplog(config)
+	a := 2
 
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
+		if err == nil {
+			if err != nil {
+				if err == nil {
+					a := 1
+				}
+			}
+		}
 	}
+
 	err = migrate(db)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
+	}
+	if err == nil {
+		fmt.Print(12)
+	}
+	a := 2
+
+	if a == 1 {
+		fmt.Print(12)
+	} else {
+		fmt.Print(432)
 	}
 
 	//auth service
