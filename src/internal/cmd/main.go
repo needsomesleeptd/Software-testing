@@ -73,19 +73,6 @@ func main() {
 			Logger: logger.Default.LogMode(logger.Silent)})
 
 	log := logger_setup.Setuplog(config)
-	a := 2
-
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-		if err == nil {
-			if err != nil {
-				if err == nil {
-					a := 1
-				}
-			}
-		}
-	}
 
 	err = migrate(db)
 	if err != nil {
