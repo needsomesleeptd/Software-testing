@@ -9,7 +9,6 @@ import (
 
 	"github.com/cucumber/godog"
 	"github.com/gavv/httpexpect/v2"
-	"github.com/joho/godotenv"
 	"github.com/xlzd/gotp"
 )
 
@@ -122,9 +121,5 @@ func loginWith2FA(ctx *godog.ScenarioContext) {
 
 // InitializeLoginScenario sets up the test environment
 func InitializeLoginScenario(ctx *godog.ScenarioContext) {
-	err := godotenv.Load("../app.env")
-	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	}
 	loginWith2FA(ctx)
 }

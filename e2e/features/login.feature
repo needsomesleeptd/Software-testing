@@ -6,7 +6,7 @@ Scenario: User login with 2FA
   And the response on /login should match json:
       """
       {
-        "message": "Verification code sent to email"
+        "message": "Totp Qr saved on the disk, you must already have totp"
       }
       """
   And user send "POST" request to "/verify"

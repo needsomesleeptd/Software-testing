@@ -1,6 +1,10 @@
 services:
   auth-app:
     container_name: auth-app
+    environment:
+      USER_EMAIL: ${USER_EMAIL}
+      USER_PASSWORD: ${USER_PASSWORD}
+      USER_SECRET: ${USER_SECRET}
     build:
       dockerfile: Dockerfile
       context: .

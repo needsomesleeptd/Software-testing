@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"github.com/pquerna/otp/totp"
 )
 
@@ -19,10 +18,10 @@ var verificationCodes = make(map[string]string)
 var hasPassedAuth = make(map[string]bool)
 
 func main() {
-	err := godotenv.Load("../app.env")
-	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	}
+	//err := godotenv.Load()
+	//if err != nil {
+	//	log.Fatalf("Error loading .env file: %v", err)
+	//}
 
 	adminEmail = os.Getenv("USER_EMAIL")
 	adminPassword = os.Getenv("USER_PASSWORD")
@@ -147,7 +146,6 @@ func verifyLoginHandler(c *gin.Context) {
 	}
 
 	expectedCode, exists := verificationCodes[request.Email]
-
 	isValid := totp.Validate(request.Code, expectedCode)
 	if !exists || !isValid {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid verification code"})
@@ -161,12 +159,17 @@ func resetPasswordHandler(c *gin.Context) {
 	var request struct {
 		Email       string `json:"email"`
 		OldPassword string `json:"oldPassword"`
-		NewPassword string `json:"newPassword"` // Added NewPassword field
+		NewPassword string `json:"newPassword"`
 		TotpCode    string `json:"totpCode"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	if !hasPassedAuth[request.Email] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Need to login first"})
 		return
 	}
 
@@ -189,5 +192,5 @@ func resetPasswordHandler(c *gin.Context) {
 
 	adminPassword = request.NewPassword
 
-	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }
