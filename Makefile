@@ -6,7 +6,7 @@ docker-run:
 
 docker-rm:
 	docker compose down
-	docker image rm testing-auth-app alpine:latest
+	docker image rm software-testing-auth-app:latest alpine:latest
 
 run-e2e: docker-run
 	go test e2e/login_test.go && go test e2e/reset_test.go
