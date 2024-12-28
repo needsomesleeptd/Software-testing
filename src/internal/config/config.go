@@ -86,6 +86,4 @@ func MustLoad(confPath string) *Config {
 	}
 
 	return &cfg
-	a := 2
-	a += 1
 }
